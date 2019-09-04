@@ -1,0 +1,7 @@
+version: '3.4'
+
+services:
+  fixtures:
+    build: fixtures/
+    ports:
+      - "8080:80"
