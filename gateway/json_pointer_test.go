@@ -1,4 +1,4 @@
-package yours
+package gateway
 
 import (
   "testing"
@@ -6,6 +6,6 @@ import (
 )
 
 func TestJsonPointersTree(t *testing.T) {
-	pointers := []string{"/foo/bar", "/foo", "/bar", "/bar/foo"}
-	m := string[]struct{}
+	/*pointers := []string{"/foo/bar", "/foo", "/bar", "/bar/foo"}
+	m := string[]struct{}*/
 }

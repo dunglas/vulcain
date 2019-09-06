@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 			rw.Header().Add("Passed-Cookie", myCookieValue)
 		}
 
-		if req.RequestURI == "/books.jsonld" {
+		if strings.HasPrefix(req.RequestURI, "/books.jsonld") {
 			if myCookieValue == "" {
 				http.SetCookie(rw, &http.Cookie{Name: "myCookie", Value: "foo"})
 			}
@@ -49,6 +50,10 @@ func main() {
 	"hydra:member": [
 		"/books/1.jsonld",
 		"/books/2.jsonld"
+	],
+	"foo": [
+		{"bar": [{"a": "b"}, {"c": "d"}], "car": "caz"},
+		{"bar": [{"a": "d"}, {"c": "e"}], "car": "caz2"}
 	]
 }`)
 
