@@ -12,12 +12,22 @@ func main() {
 	mux1.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(rw, `<h1>HTTP/2 Fixtures</h1>
 		<script>
-		fetch("https://localhost:3000/books.jsonld", {credentials: "include"})
-			.then(console.log)
-			.then(
-				fetch("https://localhost:3000/books/1.jsonld", {credentials: "include"})
-				.then(console.log)
-			)
+		const apiURL = "https://localhost:3000";
+		fetch(apiURL + "/books.jsonld?preload=/hydra:member/*", {credentials: "include"})
+			.then(resp => {
+				document.write("<p><code>/books.jsonld</code> loaded...</p>")
+				console.log(resp)
+				return resp.json()
+			})
+			.then(json => {
+				json["hydra:member"].forEach(rel => {
+					fetch(apiURL + rel, {credentials: "include"})
+					.then(data => {
+						document.write("<p><code>" + rel + "</code> loaded...</p>")
+						console.log(data)
+					})	
+				})
+			})
 		</script>`)
 	})
 	s := &http.Server{

@@ -14,6 +14,8 @@ import (
 )
 
 func init() {
+	// TODO: make this configurable
+	log.SetLevel(log.DebugLevel)
 	switch os.Getenv("LOG_FORMAT") {
 	case "JSON":
 		log.SetFormatter(&log.JSONFormatter{})
@@ -27,6 +29,10 @@ func main() {
 	g, err := gateway.NewGatewayFromEnv()
 	if err != nil {
 		log.Panicln(err)
+	}
+
+	if g.Options.Debug {
+		log.SetLevel(log.DebugLevel)
 	}
 
 	g.Serve()

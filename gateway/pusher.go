@@ -1,6 +1,6 @@
 package gateway
 
-// Adapted from https://github.com/gabesullice/hades/blob/master/lib/server/pusher.go
+// Adapted from the Hades project (https://github.com/gabesullice/hades/blob/master/lib/server/pusher.go)
 // Copyright (c) 2019 Gabriel Sullice
 // MIT License
 

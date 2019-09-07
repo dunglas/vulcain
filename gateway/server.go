@@ -14,10 +14,10 @@ import (
 // Serve starts the HTTP server
 func (g *Gateway) Serve() {
 	g.server = &http.Server{
-		Addr:         g.options.Addr,
+		Addr:         g.Options.Addr,
 		Handler:      g.chainHandlers(),
-		ReadTimeout:  g.options.ReadTimeout,
-		WriteTimeout: g.options.WriteTimeout,
+		ReadTimeout:  g.Options.ReadTimeout,
+		WriteTimeout: g.Options.WriteTimeout,
 	}
 	g.server.RegisterOnShutdown(func() {
 		// todo
@@ -36,10 +36,10 @@ func (g *Gateway) Serve() {
 		close(idleConnsClosed)
 	}()
 
-	acme := len(g.options.AcmeHosts) > 0
+	acme := len(g.Options.AcmeHosts) > 0
 	var err error
 
-	if !acme && g.options.CertFile == "" && g.options.KeyFile == "" {
+	if !acme && g.Options.CertFile == "" && g.Options.KeyFile == "" {
 		log.WithFields(log.Fields{"protocol": "http"}).Info("Mercure started")
 		err = g.server.ListenAndServe()
 	} else {
@@ -47,10 +47,10 @@ func (g *Gateway) Serve() {
 		if acme {
 			certManager := &autocert.Manager{
 				Prompt:     autocert.AcceptTOS,
-				HostPolicy: autocert.HostWhitelist(g.options.AcmeHosts...),
+				HostPolicy: autocert.HostWhitelist(g.Options.AcmeHosts...),
 			}
-			if g.options.AcmeCertDir != "" {
-				certManager.Cache = autocert.DirCache(g.options.AcmeCertDir)
+			if g.Options.AcmeCertDir != "" {
+				certManager.Cache = autocert.DirCache(g.Options.AcmeCertDir)
 			}
 			g.server.TLSConfig = certManager.TLSConfig()
 
@@ -59,7 +59,7 @@ func (g *Gateway) Serve() {
 		}
 
 		log.WithFields(log.Fields{"protocol": "https"}).Info("Mercure started")
-		err = g.server.ListenAndServeTLS(g.options.CertFile, g.options.KeyFile)
+		err = g.server.ListenAndServeTLS(g.Options.CertFile, g.Options.KeyFile)
 	}
 
 	if err != http.ErrServerClosed {
@@ -72,7 +72,7 @@ func (g *Gateway) Serve() {
 // chainHandlers configures and chains handlers
 func (g *Gateway) chainHandlers() http.Handler {
 	var useForwardedHeadersHandlers http.Handler
-	if g.options.UseForwardedHeaders {
+	if g.Options.UseForwardedHeaders {
 		useForwardedHeadersHandlers = handlers.ProxyHeaders(g)
 	} else {
 		useForwardedHeadersHandlers = g
@@ -81,7 +81,7 @@ func (g *Gateway) chainHandlers() http.Handler {
 	loggingHandler := handlers.CombinedLoggingHandler(os.Stderr, useForwardedHeadersHandlers)
 	recoveryHandler := handlers.RecoveryHandler(
 		handlers.RecoveryLogger(log.New()),
-		handlers.PrintRecoveryStack(g.options.Debug),
+		handlers.PrintRecoveryStack(g.Options.Debug),
 	)(loggingHandler)
 
 	return recoveryHandler

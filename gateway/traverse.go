@@ -12,6 +12,10 @@ func createPointer(parts []string) string {
 	return "/" + strings.Join(parts, "/")
 }
 
+func unescape(s string) string {
+	return strings.ReplaceAll(s, "~2", "*")
+}
+
 // traverseJSON recursively traverses the JSON document in order to filter it, rewrite relations URLs, and pass the relations to a closure
 func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON interface{}, newRawJSON interface{}, relationHandler func(*url.URL)) interface{} {
 	currentJSON := gabs.Wrap(currentRawJSON)
@@ -34,23 +38,19 @@ func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON int
 				// Objects
 				childrenObj := subJSON.ChildrenMap()
 				if len(childrenObj) != 0 {
-					if g.options.Debug {
-						log.WithFields(log.Fields{"pointer": "/" + createPointer(parts), "path": path}).Info("Looping over objects isn't supported yet")
-						// Actually, I'm not sure if that's a good idea at all to support that...
-					}
+					log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path}).Info("Looping over objects isn't supported yet")
+					// Actually, I'm not sure if that's a good idea at all to support that...
 					break
 				}
 
 				// Array
 				childrenArr := subJSON.Children()
 				if childrenArr == nil {
-					if g.options.Debug {
-						log.WithFields(log.Fields{"pointer": "/" + createPointer(parts), "path": path}).Info("Structure isn't a collection")
-					}
+					log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path}).Info("Structure isn't a collection")
 					break
 				}
 
-				arrayPointer := createPointer(parts[:i])
+				arrayPointer := unescape(createPointer(parts[:i]))
 				currentArrayValues, err := newJSON.JSONPointer(arrayPointer)
 				var newArray []interface{}
 
@@ -70,29 +70,28 @@ func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON int
 				break
 			}
 
-			newSubJSON, err := subJSON.JSONPointer("/" + path)
+			newSubJSON, err := subJSON.JSONPointer("/" + unescape(path))
 			if err != nil {
 				s, ok := subJSON.Data().(string)
 				if !ok {
-					if g.options.Debug {
-						log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path}).Debug("Cannot resolve JSON Pointer")
-					}
+					log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path}).Debug("Cannot resolve JSON Pointer")
 					break
 				}
 
 				u, err := url.Parse(s)
 				if err != nil {
 					// Not an URL
-					if g.options.Debug {
-						log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path, "relation": u}).Debug("Cannot resolve JSON Pointer (invalid relation)")
-					}
+					log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path, "relation": u}).Debug("Cannot resolve JSON Pointer (invalid relation)")
 					break
 				}
 
-				q := u.Query()
+				subPointer := createPointer(parts[i:])
+				if subPointer != "/" {
+					q := u.Query()
+					q.Add(key, subPointer)
+					u.RawQuery = q.Encode()
+				}
 
-				q.Add(key, createPointer(parts[i:]))
-				u.RawQuery = q.Encode()
 				newURL := u.String()
 				pointer := createPointer(parts[:i])
 
@@ -100,22 +99,20 @@ func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON int
 					relationHandler(u)
 				}
 
-				if g.options.Debug {
-					log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path, "relation": s}).Debug("URL rewrote")
-				}
+				log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path, "relation": s}).Debug("URL rewrote")
 
 				if pointer == "/" {
 					// Rewrite the root
 					return newURL
 				}
-				newJSON.SetJSONPointer(newURL, pointer)
+				newJSON.SetJSONPointer(newURL, unescape(pointer))
 
 				break
 			}
 
 			if i == l-1 {
 				// Found! Include this value in the new document.
-				newJSON.SetJSONPointer(newSubJSON.Data(), createPointer(parts))
+				newJSON.SetJSONPointer(newSubJSON.Data(), unescape(createPointer(parts)))
 				break
 			}
 
