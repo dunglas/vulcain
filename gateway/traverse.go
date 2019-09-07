@@ -13,7 +13,7 @@ func createPointer(parts []string) string {
 }
 
 // traverseJSON recursively traverses the JSON document in order to filter it, rewrite relations URLs, and pass the relations to a closure
-func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON interface{}, newRawJSON interface{}, relationHandler func(string)) interface{} {
+func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON interface{}, newRawJSON interface{}, relationHandler func(*url.URL)) interface{} {
 	currentJSON := gabs.Wrap(currentRawJSON)
 
 	var newJSON *gabs.Container
@@ -97,7 +97,7 @@ func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON int
 				pointer := createPointer(parts[:i])
 
 				if relationHandler != nil {
-					relationHandler(newURL)
+					relationHandler(u)
 				}
 
 				if g.options.Debug {

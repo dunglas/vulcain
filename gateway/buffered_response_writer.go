@@ -13,6 +13,7 @@ import (
 type bufferedResponseWriter struct {
 	originalResponseWriter http.ResponseWriter
 	buffer                 *bytes.Buffer
+	statusCode             int
 	body                   []byte
 }
 
@@ -29,8 +30,10 @@ func (rw *bufferedResponseWriter) Write(b []byte) (int, error) {
 	return rw.buffer.Write(b)
 }
 
+// WriteHeader only stores the status code. Headers will be really written only send() will be called.
+// This trick allow the reverse proxy to add Link preload headers.
 func (rw *bufferedResponseWriter) WriteHeader(statusCode int) {
-	rw.originalResponseWriter.WriteHeader(statusCode)
+	rw.statusCode = statusCode
 }
 
 func (rw *bufferedResponseWriter) bodyContent() []byte {
@@ -42,6 +45,7 @@ func (rw *bufferedResponseWriter) bodyContent() []byte {
 }
 
 func (rw *bufferedResponseWriter) send() {
+	rw.originalResponseWriter.WriteHeader(rw.statusCode)
 	io.Copy(rw.originalResponseWriter, bytes.NewReader(rw.bodyContent()))
 	rw.buffer.Reset()
 	rw.body = nil
