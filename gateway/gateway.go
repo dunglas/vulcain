@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"strings"
 
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -40,7 +41,24 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		query := req.URL.Query()
-		if len(query["preload"]) == 0 && len(query["fields"]) == 0 {
+
+		var useFieldsHeader bool
+		var useFieldsQuery bool
+		if len(req.Header["Fields"]) > 0 {
+			useFieldsHeader = true
+		} else if len(query["fields"]) > 0 {
+			useFieldsQuery = true
+		}
+
+		var usePreloadHeader bool
+		var usePreloadQuery bool
+		if len(req.Header["Preload"]) > 0 {
+			usePreloadHeader = true
+		} else if len(query["preload"]) > 0 {
+			usePreloadQuery = true
+		}
+
+		if !useFieldsHeader && !useFieldsQuery && !usePreloadHeader && !usePreloadQuery {
 			// No reserved query parameters, nothing to do
 			return nil
 		}
@@ -61,21 +79,43 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return nil
 		}
 
+		var vary []string
 		var newJSON interface{}
-		if len(query["fields"]) == 0 {
-			newJSON = currentJSON
+		if useFieldsHeader {
+			appended := false
+			newJSON = g.traverseJSON("Fields", req.Header["Fields"], currentJSON, nil, func(u *url.URL, subPointer string, key string) {
+				if appended {
+					return
+				}
+
+				vary = append(vary, "Fields")
+				appended = true
+			})
+		} else if useFieldsQuery {
+			newJSON = g.traverseJSON("fields", query["fields"], currentJSON, nil, urlRewriter)
 		} else {
-			newJSON = g.traverseJSON("fields", query["fields"], currentJSON, nil, nil)
+			newJSON = currentJSON
 		}
 
-		if len(query["preload"]) != 0 {
+		if usePreloadHeader || usePreloadQuery {
 			pushOptions := &http.PushOptions{Header: req.Header}
+			pushOptions.Header.Del("Preload")
+			pushOptions.Header.Del("Fields")
 			pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
-			newJSON = g.traverseJSON("preload", query["preload"], newJSON, newJSON, func(u *url.URL) {
+
+			appended := false
+			relationHandler := func(u *url.URL, subPointer string, key string) {
+				if usePreloadQuery {
+					urlRewriter(u, subPointer, key)
+				} else if !appended {
+					vary = append(vary, "Preload")
+				}
+
 				uStr := u.String()
 				// TODO: allow to disable Server Push from the config
 				if !u.IsAbs() && p != nil {
 					// HTTP/2, and relative relation, push!
+
 					if err := p.Push(uStr, pushOptions); err == nil {
 						log.WithFields(log.Fields{"relation": uStr}).Debug("Relation pushed")
 						return
@@ -89,13 +129,29 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				// TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 				// TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
 				r.Header.Add("Link", "<"+uStr+">; rel=preload; as=fetch")
-			})
+			}
+
+			if usePreloadHeader {
+				newJSON = g.traverseJSON("Preload", req.Header["Preload"], newJSON, newJSON, relationHandler)
+			} else {
+				newJSON = g.traverseJSON("preload", query["preload"], newJSON, newJSON, relationHandler)
+			}
 		}
 
 		// Construct the new JSON document by traversing the existing one
 		newBodyContent, err := json.Marshal(newJSON)
 		if err != nil {
 			return err
+		}
+
+		if len(vary) > 0 {
+			v := r.Header.Get("Vary")
+			if v == "" {
+				r.Header.Set("Vary", strings.Join(vary, ","))
+			} else {
+				// Preserve existing vary values
+				r.Header.Set("Vary", v+strings.Join(vary, ","))
+			}
 		}
 
 		newBody := bytes.NewBuffer(newBodyContent)

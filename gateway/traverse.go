@@ -16,10 +16,20 @@ func unescape(s string) string {
 	return strings.ReplaceAll(s, "~2", "*")
 }
 
+func urlRewriter(u *url.URL, subPointer string, key string) {
+	if subPointer == "/" {
+		return
+	}
+
+	q := u.Query()
+	q.Add(key, subPointer)
+	u.RawQuery = q.Encode()
+}
+
 // traverseJSON recursively traverses the JSON document in order to filter it, rewrite relations URLs, and pass the relations to a closure
 // TODO: a better implementation could be to convert both fields and preload selectors in a single tree, then traverse it, in a single pass.
 //       It would improve performance and allow to preserve the original order of keys
-func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON interface{}, newRawJSON interface{}, relationHandler func(*url.URL)) interface{} {
+func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON interface{}, newRawJSON interface{}, relationHandler func(*url.URL, string, string)) interface{} {
 	currentJSON := gabs.Wrap(currentRawJSON)
 
 	var newJSON *gabs.Container
@@ -88,26 +98,18 @@ func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON int
 				}
 
 				subPointer := createPointer(parts[i:])
-				if subPointer != "/" {
-					q := u.Query()
-					q.Add(key, subPointer)
-					u.RawQuery = q.Encode()
-				}
-
-				newURL := u.String()
-				pointer := createPointer(parts[:i])
-
 				if relationHandler != nil {
-					relationHandler(u)
+					relationHandler(u, subPointer, key)
 				}
 
 				log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path, "relation": s}).Debug("URL rewrote")
 
+				pointer := createPointer(parts[:i])
 				if pointer == "/" {
 					// Rewrite the root
-					return newURL
+					return u.String()
 				}
-				newJSON.SetJSONPointer(newURL, unescape(pointer))
+				newJSON.SetJSONPointer(u.String(), unescape(pointer))
 
 				break
 			}
