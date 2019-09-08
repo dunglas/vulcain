@@ -27,30 +27,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rp := httputil.NewSingleHostReverseProxy(g.Options.Upstream)
 	defer rp.ServeHTTP(rw, req)
 
-	var p *pusher
-	var explicitRequestID string
-	explicitRequest := true
-	if mainPusher, ok := rw.(http.Pusher); ok {
-		// Need https://github.com/golang/go/issues/20566 to get rid of this hack
-		explicitRequestID = req.Header.Get("Vulcain-Explicit-Request-ID")
-		if explicitRequestID == "" {
-			// Explicit client-initiated request
-			p = &pusher{internalPusher: mainPusher}
-
-			explicitRequestID = uuid.Must(uuid.NewV4()).String()
-			req.Header.Add("Vulcain-Explicit-Request-ID", explicitRequestID)
-
-			g.pushers.add(explicitRequestID, p)
-		} else {
-			// Push request
-			p, _ = g.pushers.get(explicitRequestID)
-			if p == nil {
-				log.WithFields(log.Fields{"uri": req.RequestURI, "explicitRequestID": explicitRequestID}).Debug("Pusher not found")
-			} else {
-				explicitRequest = false
-			}
-		}
-	}
+	p, explicitRequestID, explicitRequest := g.retrieveMainPusher(rw, req)
 
 	rp.ModifyResponse = func(r *http.Response) error {
 		if p != nil {
@@ -93,7 +70,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 		if len(query["preload"]) != 0 {
 			pushOptions := &http.PushOptions{Header: req.Header}
-			pushOptions.Header.Del("Te") // Not supported by Firefox
+			pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
 			newJSON = g.traverseJSON("preload", query["preload"], newJSON, newJSON, func(u *url.URL) {
 				uStr := u.String()
 				// TODO: allow to disable Server Push from the config
@@ -102,9 +79,8 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 					if err := p.Push(uStr, pushOptions); err == nil {
 						log.WithFields(log.Fields{"relation": uStr}).Debug("Relation pushed")
 						return
-					} else {
-						log.WithFields(log.Fields{"relation": uStr, "reason": err}).Debug("Failed to push")
 					}
+					log.WithFields(log.Fields{"relation": uStr, "reason": err}).Info("Failed to push")
 				}
 
 				log.WithFields(log.Fields{"relation": uStr}).Debug("Link preload header added")
@@ -138,6 +114,37 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		log.Errorf("http: proxy error: %v", err)
 		rw.WriteHeader(http.StatusBadGateway)
 	}
+}
+
+func (g *Gateway) retrieveMainPusher(rw http.ResponseWriter, req *http.Request) (*pusher, string, bool) {
+	mainPusher, ok := rw.(http.Pusher)
+	if !ok {
+		return nil, "", true
+	}
+
+	// Need https://github.com/golang/go/issues/20566 to get rid of this hack
+	explicitRequestID := req.Header.Get("Vulcain-Explicit-Request-ID")
+	if explicitRequestID == "" {
+		// Explicit client-initiated request
+		p := &pusher{internalPusher: mainPusher}
+
+		explicitRequestID := uuid.Must(uuid.NewV4()).String()
+		req.Header.Add("Vulcain-Explicit-Request-ID", explicitRequestID)
+
+		g.pushers.add(explicitRequestID, p)
+
+		return p, explicitRequestID, true
+	}
+
+	// Push request
+	p, _ := g.pushers.get(explicitRequestID)
+	if p == nil {
+		log.WithFields(log.Fields{"uri": req.RequestURI, "explicitRequestID": explicitRequestID}).Debug("Pusher not found")
+
+		return nil, "", true
+	}
+
+	return p, explicitRequestID, false
 }
 
 // NewGatewayFromEnv creates a gateway using the configuration set in env vars

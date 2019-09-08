@@ -17,6 +17,8 @@ func unescape(s string) string {
 }
 
 // traverseJSON recursively traverses the JSON document in order to filter it, rewrite relations URLs, and pass the relations to a closure
+// TODO: a better implementation could be to convert both fields and preload selectors in a single tree, then traverse it, in a single pass.
+//       It would improve performance and allow to preserve the original order of keys
 func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON interface{}, newRawJSON interface{}, relationHandler func(*url.URL)) interface{} {
 	currentJSON := gabs.Wrap(currentRawJSON)
 
