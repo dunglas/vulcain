@@ -40,17 +40,20 @@ func getBytes(r gjson.Result, body []byte) []byte {
 	return []byte(r.Raw)
 }
 
-func (g *Gateway) traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler func(u *url.URL, n *node)) []byte {
+func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler func(u *url.URL, n *node)) []byte {
 	var (
 		newBody []byte
 		err     error
 	)
 
+	result := gjson.ParseBytes(currentBody)
 	if len(tree.children) == 0 {
-		// Leaf, maybe a relation
-		newBody = handleRelation(currentBody, tree, relationHandler)
-
+		// Leaf
 		return currentBody
+	}
+	if result.Type == gjson.String {
+		// Maybe a relation
+		return handleRelation(currentBody, tree, relationHandler)
 	}
 
 	if filter {
@@ -72,12 +75,11 @@ func (g *Gateway) traverseJSON(currentBody []byte, tree *node, filter bool, rela
 		}
 
 		if node.path == "*" {
-			result := gjson.ParseBytes(currentBody)
 			var i int
 			result.ForEach(func(_, value gjson.Result) bool {
 				// TODO: support iterating over objects
 				rawBytes := getBytes(value, currentBody)
-				rawBytes = g.traverseJSON(rawBytes, node, filter, relationHandler)
+				rawBytes = traverseJSON(rawBytes, node, filter, relationHandler)
 				newBody, err = sjson.SetRawBytes(newBody, strconv.Itoa(i), rawBytes)
 				if err != nil {
 					log.WithFields(log.Fields{"path": node.path, "reason": err, "index": i}).Debug("Cannot update array")
@@ -92,19 +94,13 @@ func (g *Gateway) traverseJSON(currentBody []byte, tree *node, filter bool, rela
 		path := unescape(node.path)
 		result := gjson.GetBytes(currentBody, path)
 		if result.Exists() {
-			rawBytes := g.traverseJSON(getBytes(result, currentBody), node, filter, relationHandler)
+			rawBytes := traverseJSON(getBytes(result, currentBody), node, filter, relationHandler)
 
 			newBody, err = sjson.SetRawBytes(newBody, path, rawBytes)
 			if err != nil {
 				log.WithFields(log.Fields{"path": node.path, "reason": err}).Debug("Cannot update new document")
 			}
-
-			continue
 		}
-
-		// Probably a relation, push it with the current context
-		newBody = handleRelation(currentBody, tree, relationHandler)
-		break
 	}
 
 	return newBody

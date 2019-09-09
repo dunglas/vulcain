@@ -92,7 +92,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			tree.importPointers(Fields, query["fields"])
 		}
 
-		newBody := g.traverseJSON(currentBody, tree, useFieldsHeader || useFieldsQuery, func(u *url.URL, n *node) {
+		newBody := traverseJSON(currentBody, tree, useFieldsHeader || useFieldsQuery, func(u *url.URL, n *node) {
 			if usePreloadQuery || useFieldsQuery {
 				urlRewriter(u, n)
 			}

@@ -5,17 +5,20 @@ import (
 )
 
 type node struct {
+	// TODO: use a bitfield instead of preload and fields
 	preload  bool
 	fields   bool
 	path     string
 	children []*node
 }
 
+// Type is the type of operation to apply, can be Preload or Fields
 type Type int
 
 const (
+	// Preload is a preloading action through query parameters or headers
 	Preload Type = iota
-	// False is a json false boolean
+	// Fields is a filtering action through query parameters or headers
 	Fields
 )
 

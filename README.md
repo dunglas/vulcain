@@ -1,6 +1,5 @@
-# Vulcain: Client-Driven REST APIs with Server Push Capabilities
-*Protocol and Reference Implementation*
-
+# Vulcain: the RESTful Way to Fetch All You Need... But Only What You Need
+*Protocol and Reference Gateway*
 
 [![GoDoc](https://godoc.org/github.com/dunglas/vulcain?status.svg)](https://godoc.org/github.com/dunglas/vulcain/hub)
 [![Build Status](https://travis-ci.com/dunglas/vulcain.svg?branch=master)](https://travis-ci.com/dunglas/vulcain)
@@ -33,6 +32,13 @@ curl https://localhost:3000/books.jsonld \
     --insecure 
 ```
 
+## Prior Art
+
+* JSON:API
+* GraphQL
+* Hades
+* Prefer-Push I-D
+* Transclude I-D
 
 ## Credits
 
