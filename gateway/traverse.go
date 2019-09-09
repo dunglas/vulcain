@@ -1,128 +1,131 @@
 package gateway
 
 import (
+	"encoding/json"
 	"net/url"
+	"strconv"
 	"strings"
 
-	gabs "github.com/Jeffail/gabs/v2"
 	log "github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
-func createPointer(parts []string) string {
-	return "/" + strings.Join(parts, "/")
-}
-
 func unescape(s string) string {
-	return strings.ReplaceAll(s, "~2", "*")
+	s = strings.ReplaceAll(s, "~2", "*")
+	s = strings.ReplaceAll(s, "~1", "/")
+	return strings.ReplaceAll(s, "~0", "~")
 }
 
-func urlRewriter(u *url.URL, subPointer string, key string) {
-	if subPointer == "/" {
-		return
-	}
-
+func urlRewriter(u *url.URL, n *node) {
 	q := u.Query()
-	q.Add(key, subPointer)
+	for _, pp := range n.strings(Preload, "") {
+		if pp != "/" {
+			q.Add("preload", pp)
+		}
+	}
+	for _, fp := range n.strings(Fields, "") {
+		if fp != "/" {
+			q.Add("fields", fp)
+		}
+	}
 	u.RawQuery = q.Encode()
 }
 
-// traverseJSON recursively traverses the JSON document in order to filter it, rewrite relations URLs, and pass the relations to a closure
-// TODO: a better implementation could be to convert both fields and preload selectors in a single tree, then traverse it, in a single pass.
-//       It would improve performance and allow to preserve the original order of keys
-func (g *Gateway) traverseJSON(key string, pointers []string, currentRawJSON interface{}, newRawJSON interface{}, relationHandler func(*url.URL, string, string)) interface{} {
-	currentJSON := gabs.Wrap(currentRawJSON)
-
-	var newJSON *gabs.Container
-	if newRawJSON == nil {
-		newJSON = gabs.New()
-	} else {
-		newJSON = gabs.Wrap(newRawJSON)
+func getBytes(r gjson.Result, body []byte) []byte {
+	if r.Index > 0 {
+		return body[r.Index : r.Index+len(r.Raw)]
 	}
 
-	// TODO: preserve JSON objects order
-	for _, propertyPointer := range pointers {
-		parts := strings.Split(strings.Trim(propertyPointer, "/"), "/")
-		l := len(parts)
-		subJSON := currentJSON
+	return []byte(r.Raw)
+}
 
-		for i, path := range parts {
-			if path == "*" {
-				// Objects
-				childrenObj := subJSON.ChildrenMap()
-				if len(childrenObj) != 0 {
-					log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path}).Info("Looping over objects isn't supported yet")
-					// Actually, I'm not sure if that's a good idea at all to support that...
-					break
-				}
+func (g *Gateway) traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler func(u *url.URL, n *node)) []byte {
+	var (
+		newBody []byte
+		err     error
+	)
 
-				// Array
-				childrenArr := subJSON.Children()
-				if childrenArr == nil {
-					log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path}).Info("Structure isn't a collection")
-					break
-				}
+	if len(tree.children) == 0 {
+		// Leaf, maybe a relation
+		newBody = handleRelation(currentBody, tree, relationHandler)
 
-				arrayPointer := unescape(createPointer(parts[:i]))
-				currentArrayValues, err := newJSON.JSONPointer(arrayPointer)
-				var newArray []interface{}
+		return currentBody
+	}
 
-				for j, child := range childrenArr {
-					var currentArrayValue interface{}
-					if err == nil {
-						if currentArrayElement, err := currentArrayValues.ArrayElement(j); err == nil {
-							currentArrayValue = currentArrayElement.Data()
-						}
-					}
-
-					newArrayValue := g.traverseJSON(key, []string{createPointer(parts[i+1:])}, child.Data(), currentArrayValue, relationHandler)
-					newArray = append(newArray, newArrayValue)
-				}
-				newJSON.SetJSONPointer(newArray, arrayPointer)
-
-				break
-			}
-
-			newSubJSON, err := subJSON.JSONPointer("/" + unescape(path))
-			if err != nil {
-				s, ok := subJSON.Data().(string)
-				if !ok {
-					log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path}).Debug("Cannot resolve JSON Pointer")
-					break
-				}
-
-				u, err := url.Parse(s)
-				if err != nil {
-					// Not an URL
-					log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path, "relation": u}).Debug("Cannot resolve JSON Pointer (invalid relation)")
-					break
-				}
-
-				subPointer := createPointer(parts[i:])
-				if relationHandler != nil {
-					relationHandler(u, subPointer, key)
-				}
-
-				log.WithFields(log.Fields{"pointer": createPointer(parts), "path": path, "relation": s}).Debug("URL rewrote")
-
-				pointer := createPointer(parts[:i])
-				if pointer == "/" {
-					// Rewrite the root
-					return u.String()
-				}
-				newJSON.SetJSONPointer(u.String(), unescape(pointer))
-
-				break
-			}
-
-			if i == l-1 {
-				// Found! Include this value in the new document.
-				newJSON.SetJSONPointer(newSubJSON.Data(), unescape(createPointer(parts)))
-				break
-			}
-
-			subJSON = newSubJSON
+	if filter {
+		if len(tree.children) == 1 && tree.children[0].path == "*" {
+			newBody = []byte("[]")
+		} else {
+			newBody = []byte("{}")
 		}
+	} else {
+		newBody = currentBody
 	}
 
-	return newJSON.Data()
+	for _, node := range tree.children {
+		if filter {
+			if !node.fields {
+				// Don't push for nothing
+				continue
+			}
+		}
+
+		if node.path == "*" {
+			result := gjson.ParseBytes(currentBody)
+			var i int
+			result.ForEach(func(_, value gjson.Result) bool {
+				// TODO: support iterating over objects
+				rawBytes := getBytes(value, currentBody)
+				rawBytes = g.traverseJSON(rawBytes, node, filter, relationHandler)
+				newBody, err = sjson.SetRawBytes(newBody, strconv.Itoa(i), rawBytes)
+				if err != nil {
+					log.WithFields(log.Fields{"path": node.path, "reason": err, "index": i}).Debug("Cannot update array")
+				}
+
+				i++
+				return true
+			})
+			continue
+		}
+
+		path := unescape(node.path)
+		result := gjson.GetBytes(currentBody, path)
+		if result.Exists() {
+			rawBytes := g.traverseJSON(getBytes(result, currentBody), node, filter, relationHandler)
+
+			newBody, err = sjson.SetRawBytes(newBody, path, rawBytes)
+			if err != nil {
+				log.WithFields(log.Fields{"path": node.path, "reason": err}).Debug("Cannot update new document")
+			}
+
+			continue
+		}
+
+		// Probably a relation, push it with the current context
+		newBody = handleRelation(currentBody, tree, relationHandler)
+		break
+	}
+
+	return newBody
+}
+
+func handleRelation(currentBody []byte, tree *node, relationHandler func(u *url.URL, n *node)) []byte {
+	result := gjson.ParseBytes(currentBody)
+
+	if result.Type != gjson.String {
+		return currentBody
+	}
+
+	uStr := result.String()
+	u, err := url.Parse(uStr)
+	if err != nil {
+		log.WithFields(log.Fields{"path": tree.path, "relation": uStr}).Debug("Invalid relation")
+		return currentBody
+	}
+
+	relationHandler(u, tree)
+
+	newBody, _ := json.Marshal(u.String())
+	return newBody
 }

@@ -21,6 +21,19 @@ curl https://localhost:3000/books.jsonld \
     --insecure 
 ```
 
+Using headers:
+
+```bash
+curl https://localhost:3000/books.jsonld \
+    --get \
+    --header 'Preload: /hydra:member/*/author' \
+    --header 'Fields: /hydra:member/*/author' \
+    --header 'Fields: /hydra:member/*/title' \
+    --verbose \
+    --insecure 
+```
+
+
 ## Credits
 
 Created by [Kévin Dunglas](https://dunglas.fr). Sponsored by [Les-Tilleuls.coop](https://les-tilleuls.coop).

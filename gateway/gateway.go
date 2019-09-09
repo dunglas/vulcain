@@ -2,14 +2,12 @@ package gateway
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"regexp"
-	"strings"
 
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -22,6 +20,16 @@ type Gateway struct {
 	Options *Options
 	server  *http.Server
 	pushers *pushers
+}
+
+func addToVary(r *http.Response, header string) {
+	v := r.Header.Get("Vary")
+	if v == "" {
+		r.Header.Set("Vary", header)
+		return
+	}
+
+	r.Header.Set("Vary", v+", "+header)
 }
 
 func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -41,17 +49,14 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		query := req.URL.Query()
+		var useFieldsHeader, useFieldsQuery, usePreloadHeader, usePreloadQuery bool
 
-		var useFieldsHeader bool
-		var useFieldsQuery bool
 		if len(req.Header["Fields"]) > 0 {
 			useFieldsHeader = true
 		} else if len(query["fields"]) > 0 {
 			useFieldsQuery = true
 		}
 
-		var usePreloadHeader bool
-		var usePreloadQuery bool
 		if len(req.Header["Preload"]) > 0 {
 			usePreloadHeader = true
 		} else if len(query["preload"]) > 0 {
@@ -68,95 +73,78 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return nil
 		}
 
-		body, err := ioutil.ReadAll(r.Body)
+		currentBody, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			return err
 		}
 
-		var currentJSON interface{}
-		if err := json.Unmarshal(body, &currentJSON); err != nil {
-			// Invalid JSON
-			return nil
+		tree := newPointersTree(usePreloadHeader || usePreloadQuery, useFieldsHeader || useFieldsQuery)
+		if usePreloadHeader {
+			tree.importPointers(Preload, req.Header["Preload"])
+		}
+		if usePreloadQuery {
+			tree.importPointers(Preload, query["preload"])
+		}
+		if useFieldsHeader {
+			tree.importPointers(Fields, req.Header["Fields"])
+		}
+		if useFieldsQuery {
+			tree.importPointers(Fields, query["fields"])
 		}
 
-		var vary []string
-		var newJSON interface{}
-		if useFieldsHeader {
-			appended := false
-			newJSON = g.traverseJSON("Fields", req.Header["Fields"], currentJSON, nil, func(u *url.URL, subPointer string, key string) {
-				if appended {
+		newBody := g.traverseJSON(currentBody, tree, useFieldsHeader || useFieldsQuery, func(u *url.URL, n *node) {
+			if usePreloadQuery || useFieldsQuery {
+				urlRewriter(u, n)
+			}
+
+			if !usePreloadHeader && !usePreloadQuery {
+				return
+			}
+
+			uStr := u.String()
+			// TODO: allow to disable Server Push from the config
+			if !u.IsAbs() && p != nil {
+				pushOptions := &http.PushOptions{Header: req.Header}
+				pushOptions.Header.Del("Preload")
+				pushOptions.Header.Del("Fields")
+				pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
+
+				for _, pp := range n.strings(Preload, "") {
+					if pp != "/" {
+						pushOptions.Header.Add("Preload", pp)
+					}
+				}
+				for _, fp := range n.strings(Preload, "") {
+					if fp != "/" {
+						pushOptions.Header.Add("Fields", fp)
+					}
+				}
+
+				// HTTP/2, and relative relation, push!
+				if err := p.Push(uStr, pushOptions); err == nil {
+					log.WithFields(log.Fields{"relation": uStr}).Debug("Relation pushed")
 					return
 				}
-
-				vary = append(vary, "Fields")
-				appended = true
-			})
-		} else if useFieldsQuery {
-			newJSON = g.traverseJSON("fields", query["fields"], currentJSON, nil, urlRewriter)
-		} else {
-			newJSON = currentJSON
-		}
-
-		if usePreloadHeader || usePreloadQuery {
-			pushOptions := &http.PushOptions{Header: req.Header}
-			pushOptions.Header.Del("Preload")
-			pushOptions.Header.Del("Fields")
-			pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
-
-			appended := false
-			relationHandler := func(u *url.URL, subPointer string, key string) {
-				if usePreloadQuery {
-					urlRewriter(u, subPointer, key)
-				} else if !appended {
-					vary = append(vary, "Preload")
-				}
-
-				uStr := u.String()
-				// TODO: allow to disable Server Push from the config
-				if !u.IsAbs() && p != nil {
-					// HTTP/2, and relative relation, push!
-
-					if err := p.Push(uStr, pushOptions); err == nil {
-						log.WithFields(log.Fields{"relation": uStr}).Debug("Relation pushed")
-						return
-					}
-					log.WithFields(log.Fields{"relation": uStr, "reason": err}).Info("Failed to push")
-				}
-
-				log.WithFields(log.Fields{"relation": uStr}).Debug("Link preload header added")
-
-				// Use preload Link headers as fallback (https://www.w3.org/TR/preload/)
-				// TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
-				// TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
-				r.Header.Add("Link", "<"+uStr+">; rel=preload; as=fetch")
+				log.WithFields(log.Fields{"relation": uStr, "reason": err}).Info("Failed to push")
 			}
 
-			if usePreloadHeader {
-				newJSON = g.traverseJSON("Preload", req.Header["Preload"], newJSON, newJSON, relationHandler)
-			} else {
-				newJSON = g.traverseJSON("preload", query["preload"], newJSON, newJSON, relationHandler)
-			}
+			// Use preload Link headers as fallback (https://www.w3.org/TR/preload/)
+			// TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
+			// TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
+			r.Header.Add("Link", "<"+uStr+">; rel=preload; as=fetch")
+			log.WithFields(log.Fields{"relation": uStr}).Debug("Link preload header added")
+		})
+
+		if useFieldsHeader {
+			addToVary(r, "Fields")
+		}
+		if usePreloadHeader {
+			addToVary(r, "Preload")
 		}
 
-		// Construct the new JSON document by traversing the existing one
-		newBodyContent, err := json.Marshal(newJSON)
-		if err != nil {
-			return err
-		}
-
-		if len(vary) > 0 {
-			v := r.Header.Get("Vary")
-			if v == "" {
-				r.Header.Set("Vary", strings.Join(vary, ","))
-			} else {
-				// Preserve existing vary values
-				r.Header.Set("Vary", v+strings.Join(vary, ","))
-			}
-		}
-
-		newBody := bytes.NewBuffer(newBodyContent)
-		r.Body = ioutil.NopCloser(newBody)
-		r.Header["Content-Length"] = []string{fmt.Sprint(newBody.Len())}
+		newBodyBuffer := bytes.NewBuffer(newBody)
+		r.Body = ioutil.NopCloser(newBodyBuffer)
+		r.Header["Content-Length"] = []string{fmt.Sprint(newBodyBuffer.Len())}
 
 		return nil
 	}
