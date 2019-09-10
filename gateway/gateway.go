@@ -78,7 +78,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return err
 		}
 
-		tree := newPointersTree(usePreloadHeader || usePreloadQuery, useFieldsHeader || useFieldsQuery)
+		tree := &node{}
 		if usePreloadHeader {
 			tree.importPointers(Preload, req.Header["Preload"])
 		}
@@ -93,6 +93,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		newBody := traverseJSON(currentBody, tree, useFieldsHeader || useFieldsQuery, func(u *url.URL, n *node) {
+			log.Println(u.String())
 			if usePreloadQuery || useFieldsQuery {
 				urlRewriter(u, n)
 			}

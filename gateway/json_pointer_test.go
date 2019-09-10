@@ -7,12 +7,12 @@ import (
 )
 
 func TestRootNode(t *testing.T) {
-	n := newPointersTree(true, true)
+	n := &node{}
 	assert.Equal(t, []string{"/"}, n.strings(Preload, ""))
 }
 
 func TestImportPointers(t *testing.T) {
-	n := newPointersTree(true, true)
+	n := &node{}
 	n.importPointers(Preload, []string{"/foo", "/bar/foo", "/foo/*", "/bar/foo/*/baz"})
 	n.importPointers(Fields, []string{"/foo/bat", "/baz", "/baz/*", "/baz"})
 

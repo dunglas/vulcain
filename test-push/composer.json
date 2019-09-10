@@ -1,0 +1,6 @@
+{
+    "require": {
+        "symfony/http-client": "^4.3@dev"
+    },
+    "minimum-stability": "dev"
+}

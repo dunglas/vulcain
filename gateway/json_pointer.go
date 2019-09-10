@@ -5,7 +5,6 @@ import (
 )
 
 type node struct {
-	// TODO: use a bitfield instead of preload and fields
 	preload  bool
 	fields   bool
 	path     string
@@ -21,10 +20,6 @@ const (
 	// Fields is a filtering action through query parameters or headers
 	Fields
 )
-
-func newPointersTree(p bool, f bool) *node {
-	return &node{preload: p, fields: f}
-}
 
 func (n *node) importPointers(t Type, pointers []string) {
 	for _, pointer := range pointers {
@@ -55,7 +50,6 @@ func partsToTree(t Type, parts []string, root *node) {
 		child = &node{}
 		child.path = parts[0]
 		root.children = append(root.children, child)
-		// TODO: sort by path
 	}
 
 	switch t {
@@ -69,6 +63,19 @@ func partsToTree(t Type, parts []string, root *node) {
 	}
 
 	partsToTree(t, parts[1:], child)
+}
+
+func (n *node) hasChildren(t Type) bool {
+	for _, c := range n.children {
+		if t == Preload && c.preload {
+			return true
+		}
+		if t == Fields && c.fields {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (n *node) strings(t Type, prefix string) []string {

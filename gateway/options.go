@@ -19,6 +19,7 @@ type Options struct {
 	KeyFile             string
 	ReadTimeout         time.Duration
 	WriteTimeout        time.Duration
+	Compress            bool
 	UseForwardedHeaders bool
 }
 
@@ -52,9 +53,21 @@ func NewOptionsFromEnv() (*Options, error) {
 		os.Getenv("KEY_FILE"),
 		readTimeout,
 		writeTimeout,
+		os.Getenv("COMPRESS") != "0",
 		os.Getenv("USE_FORWARDED_HEADERS") == "1",
 	}
 
+	missingEnv := make([]string, 0, 2)
+	if len(options.CertFile) != 0 && len(options.KeyFile) == 0 {
+		missingEnv = append(missingEnv, "KEY_FILE")
+	}
+	if len(options.KeyFile) != 0 && len(options.CertFile) == 0 {
+		missingEnv = append(missingEnv, "CERT_FILE")
+	}
+
+	if len(missingEnv) > 0 {
+		return nil, fmt.Errorf("The following environment variable must be defined: %s", missingEnv)
+	}
 	return options, nil
 }
 

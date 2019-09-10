@@ -1,4 +1,4 @@
-# Vulcain: the RESTful Way to Fetch All You Need... But Only What You Need
+# Vulcain: Grab What You Need... Burn The REST!
 *Protocol and Reference Gateway*
 
 [![GoDoc](https://godoc.org/github.com/dunglas/vulcain?status.svg)](https://godoc.org/github.com/dunglas/vulcain/hub)

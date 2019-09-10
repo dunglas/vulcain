@@ -47,17 +47,14 @@ func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler f
 	)
 
 	result := gjson.ParseBytes(currentBody)
-	if len(tree.children) == 0 {
-		// Leaf
-		return currentBody
-	}
 	if result.Type == gjson.String {
 		// Maybe a relation
 		return handleRelation(currentBody, tree, relationHandler)
 	}
 
+	filter = filter && tree.hasChildren(Fields)
 	if filter {
-		if len(tree.children) == 1 && tree.children[0].path == "*" {
+		if result.IsArray() {
 			newBody = []byte("[]")
 		} else {
 			newBody = []byte("{}")
@@ -66,23 +63,22 @@ func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler f
 		newBody = currentBody
 	}
 
-	for _, node := range tree.children {
+	for _, n := range tree.children {
 		if filter {
-			if !node.fields {
+			if !n.fields {
 				// Don't push for nothing
 				continue
 			}
 		}
 
-		if node.path == "*" {
+		if n.path == "*" {
 			var i int
 			result.ForEach(func(_, value gjson.Result) bool {
 				// TODO: support iterating over objects
-				rawBytes := getBytes(value, currentBody)
-				rawBytes = traverseJSON(rawBytes, node, filter, relationHandler)
+				rawBytes := traverseJSON(getBytes(value, currentBody), n, filter, relationHandler)
 				newBody, err = sjson.SetRawBytes(newBody, strconv.Itoa(i), rawBytes)
 				if err != nil {
-					log.WithFields(log.Fields{"path": node.path, "reason": err, "index": i}).Debug("Cannot update array")
+					log.WithFields(log.Fields{"path": n.path, "reason": err, "index": i}).Debug("Cannot update array")
 				}
 
 				i++
@@ -91,14 +87,14 @@ func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler f
 			continue
 		}
 
-		path := unescape(node.path)
+		path := unescape(n.path)
 		result := gjson.GetBytes(currentBody, path)
 		if result.Exists() {
-			rawBytes := traverseJSON(getBytes(result, currentBody), node, filter, relationHandler)
+			rawBytes := traverseJSON(getBytes(result, currentBody), n, filter, relationHandler)
 
 			newBody, err = sjson.SetRawBytes(newBody, path, rawBytes)
 			if err != nil {
-				log.WithFields(log.Fields{"path": node.path, "reason": err}).Debug("Cannot update new document")
+				log.WithFields(log.Fields{"path": n.path, "reason": err}).Debug("Cannot update new document")
 			}
 		}
 	}

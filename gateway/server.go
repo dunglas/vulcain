@@ -19,9 +19,6 @@ func (g *Gateway) Serve() {
 		ReadTimeout:  g.Options.ReadTimeout,
 		WriteTimeout: g.Options.WriteTimeout,
 	}
-	g.server.RegisterOnShutdown(func() {
-		// todo
-	})
 
 	idleConnsClosed := make(chan struct{})
 	go func() {
@@ -40,7 +37,7 @@ func (g *Gateway) Serve() {
 	var err error
 
 	if !acme && g.Options.CertFile == "" && g.Options.KeyFile == "" {
-		log.WithFields(log.Fields{"protocol": "http"}).Info("Mercure started")
+		log.WithFields(log.Fields{"protocol": "http"}).Info("Vulcain started")
 		err = g.server.ListenAndServe()
 	} else {
 		// TLS
@@ -58,7 +55,7 @@ func (g *Gateway) Serve() {
 			go http.ListenAndServe(":http", certManager.HTTPHandler(nil))
 		}
 
-		log.WithFields(log.Fields{"protocol": "https"}).Info("Mercure started")
+		log.WithFields(log.Fields{"protocol": "https"}).Info("Vulcain started")
 		err = g.server.ListenAndServeTLS(g.Options.CertFile, g.Options.KeyFile)
 	}
 
@@ -78,7 +75,14 @@ func (g *Gateway) chainHandlers() http.Handler {
 		useForwardedHeadersHandlers = g
 	}
 
-	loggingHandler := handlers.CombinedLoggingHandler(os.Stderr, useForwardedHeadersHandlers)
+	var compressHandler http.Handler
+	if g.Options.Compress {
+		compressHandler = handlers.CompressHandler(useForwardedHeadersHandlers)
+	} else {
+		compressHandler = useForwardedHeadersHandlers
+	}
+
+	loggingHandler := handlers.CombinedLoggingHandler(os.Stderr, compressHandler)
 	recoveryHandler := handlers.RecoveryHandler(
 		handlers.RecoveryLogger(log.New()),
 		handlers.PrintRecoveryStack(g.Options.Debug),
