@@ -1,8 +1,10 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -17,6 +19,12 @@ const BooksContent = `{
 		{"bar": [{"a": "b"}, {"c": "d"}], "car": "caz"},
 		{"bar": [{"a": "d"}, {"c": "e"}], "car": "caz2"}
 	]
+	}`
+
+// Author1Content contains the raw JSON of /authors/1.jsonld
+const Author1Content = `{
+	"@id": "/authors/1.jsonld",
+	"name": "Kévin"
 	}`
 
 // Fixtures provides a dummy API
@@ -41,8 +49,18 @@ func Fixtures(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if strings.HasPrefix(req.RequestURI, "/authors/") {
+		fmt.Fprint(rw, Author1Content)
+
+		return
+	}
+
+	u, _ := url.Parse(req.RequestURI)
+	u.RawQuery = ""
+
+	encodedURI, _ := json.Marshal(u.String())
 	fmt.Fprint(rw, `{
-"@id": "/books/1.jsonld",
+"@id": `+string(encodedURI)+`,
 "title": "Book 1",
 "description": "A good book",
 "author": "/authors/1.jsonld"

@@ -59,12 +59,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-client.git",
-                "reference": "0fa8504868a133a5de77015e04b70d2c813e4ece"
+                "reference": "cd5ae93ccec4593a3a51ea3f3191bc3bbb736682"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-client/zipball/0fa8504868a133a5de77015e04b70d2c813e4ece",
-                "reference": "0fa8504868a133a5de77015e04b70d2c813e4ece",
+                "url": "https://api.github.com/repos/symfony/http-client/zipball/cd5ae93ccec4593a3a51ea3f3191bc3bbb736682",
+                "reference": "cd5ae93ccec4593a3a51ea3f3191bc3bbb736682",
                 "shasum": ""
             },
             "require": {
@@ -118,7 +118,7 @@
             ],
             "description": "Symfony HttpClient component",
             "homepage": "https://symfony.com",
-            "time": "2019-09-09T10:09:16+00:00"
+            "time": "2019-09-10T06:36:23+00:00"
         },
         {
             "name": "symfony/http-client-contracts",

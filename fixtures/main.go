@@ -14,19 +14,26 @@ func main() {
 		fmt.Fprint(rw, `<h1>HTTP/2 Fixtures</h1>
 		<script>
 		const apiURL = "https://localhost:3000";
-		fetch(apiURL + "/books.jsonld?preload=/hydra:member/*", {credentials: "include"})
-			.then(resp => {
-				document.write("<p><code>/books.jsonld</code> loaded...</p>")
-				console.log(resp)
-				return resp.json()
+		fetch(apiURL + "/books.jsonld?preload=/hydra:member/*/author", {credentials: "include"})
+			.then(booksResp => {
+				document.write("<p>Books: <code>/books.jsonld</code> loaded...</p>")
+				console.log(booksResp)
+				return booksResp.json()
 			})
-			.then(json => {
-				json["hydra:member"].forEach(rel => {
-					fetch(apiURL + rel, {credentials: "include"})
-					.then(data => {
-						document.write("<p><code>" + rel + "</code> loaded...</p>")
-						console.log(data)
-					})	
+			.then(booksJSON => {
+				booksJSON["hydra:member"].forEach(bookPath => {
+					fetch(apiURL + bookPath, {credentials: "include"})
+					.then(bookResp => {
+						document.write("<p>Book: <code>" + bookPath + "</code> loaded...</p>")
+						console.log(bookResp)
+						return bookResp.json()
+					}).then(bookJSON => {
+						fetch(apiURL + bookJSON.author, {credentials: "include"})
+						.then(authorResp => {
+							document.write("<p>Author: <code>" + bookJSON.author + "</code> loaded...</p>")
+							console.log(authorResp)
+						})
+					})
 				})
 			})
 		</script>`)

@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"sync"
 
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -36,16 +37,26 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rp := httputil.NewSingleHostReverseProxy(g.Options.Upstream)
 	defer rp.ServeHTTP(rw, req)
 
-	p, explicitRequestID, explicitRequest := g.retrieveMainPusher(rw, req)
+	var wg sync.WaitGroup
+	parentPusher, childrenPusher, requestID := g.retrievePushers(rw, req)
+	if childrenPusher != nil {
+		// Block until reverse proxy's goroutine finishes
+		wg.Add(1)
+		// Cleanup
+		defer g.pushers.remove(requestID)
+		defer wg.Wait()
+		// Wait for the subrequests to finish
+		defer childrenPusher.Wait()
+
+		if parentPusher != nil {
+			// Mark this subrequest as finished
+			defer parentPusher.Done()
+		}
+	}
 
 	rp.ModifyResponse = func(r *http.Response) error {
-		if p != nil {
-			if explicitRequest {
-				defer p.Wait()
-				defer g.pushers.remove(explicitRequestID)
-			} else {
-				defer p.Done()
-			}
+		if childrenPusher != nil {
+			defer wg.Done()
 		}
 
 		query := req.URL.Query()
@@ -93,7 +104,6 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		newBody := traverseJSON(currentBody, tree, useFieldsHeader || useFieldsQuery, func(u *url.URL, n *node) {
-			log.Println(u.String())
 			if usePreloadQuery || useFieldsQuery {
 				urlRewriter(u, n)
 			}
@@ -104,7 +114,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 			uStr := u.String()
 			// TODO: allow to disable Server Push from the config
-			if !u.IsAbs() && p != nil {
+			if !u.IsAbs() && childrenPusher != nil {
 				pushOptions := &http.PushOptions{Header: req.Header}
 				pushOptions.Header.Del("Preload")
 				pushOptions.Header.Del("Fields")
@@ -122,7 +132,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				}
 
 				// HTTP/2, and relative relation, push!
-				if err := p.Push(uStr, pushOptions); err == nil {
+				if err := childrenPusher.Push(uStr, pushOptions); err == nil {
 					log.WithFields(log.Fields{"relation": uStr}).Debug("Relation pushed")
 					return
 				}
@@ -150,9 +160,8 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return nil
 	}
 	rp.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
-		if !explicitRequest {
-			// Don't block the explicit request if there is an error in a push request
-			p.Done()
+		if childrenPusher != nil {
+			defer wg.Done()
 		}
 
 		// Adapted from the default ErrorHandler
@@ -161,35 +170,34 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (g *Gateway) retrieveMainPusher(rw http.ResponseWriter, req *http.Request) (*pusher, string, bool) {
-	mainPusher, ok := rw.(http.Pusher)
+func (g *Gateway) retrievePushers(rw http.ResponseWriter, req *http.Request) (parentPusher *pusher, childrenPusher *pusher, requestID string) {
+	internalPusher, ok := rw.(http.Pusher)
 	if !ok {
-		return nil, "", true
+		// Not an HTTP/2 connection
+		return nil, nil, ""
 	}
 
 	// Need https://github.com/golang/go/issues/20566 to get rid of this hack
-	explicitRequestID := req.Header.Get("Vulcain-Explicit-Request-ID")
-	if explicitRequestID == "" {
-		// Explicit client-initiated request
-		p := &pusher{internalPusher: mainPusher}
-
-		explicitRequestID := uuid.Must(uuid.NewV4()).String()
-		req.Header.Add("Vulcain-Explicit-Request-ID", explicitRequestID)
-
-		g.pushers.add(explicitRequestID, p)
-
-		return p, explicitRequestID, true
+	parentID := req.Header.Get("Vulcain-Parent")
+	if parentID != "" {
+		parentPusher, ok = g.pushers.get(parentID)
+		if ok {
+			internalPusher = parentPusher.internalPusher
+		} else {
+			// Should not happen, is an attacker forging an evil request?
+			log.WithFields(log.Fields{"uri": req.RequestURI, "parentID": parentID}).Debug("Pusher not found")
+			parentID = ""
+		}
 	}
 
-	// Push request
-	p, _ := g.pushers.get(explicitRequestID)
-	if p == nil {
-		log.WithFields(log.Fields{"uri": req.RequestURI, "explicitRequestID": explicitRequestID}).Debug("Pusher not found")
+	// Store a new waitPusher to be used by children
+	requestID = uuid.Must(uuid.NewV4()).String()
+	req.Header.Set("Vulcain-Parent", requestID)
 
-		return nil, "", true
-	}
+	childrenPusher = &pusher{internalPusher: internalPusher}
+	g.pushers.add(requestID, childrenPusher)
 
-	return p, explicitRequestID, false
+	return parentPusher, childrenPusher, requestID
 }
 
 // NewGatewayFromEnv creates a gateway using the configuration set in env vars

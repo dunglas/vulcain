@@ -60,9 +60,8 @@ func TestH2NoPush(t *testing.T) {
 	g.server.Shutdown(context.Background())
 }
 
-// Unfortunately, Go's HTTP client doesn't allow to receive Server Pushes yet
-// See https://github.com/golang/go/issues/18594
-// In the meantime, we'll use PHP to test this
+// Unfortunately, Go's HTTP client doesn't support Pushes yet (https://github.com/golang/go/issues/18594)
+// In the meantime, we use Symfony HttpClient
 func TestH2Push(t *testing.T) {
 	upstream, g, _ := createTestingUtils()
 	defer upstream.Close()
@@ -71,10 +70,9 @@ func TestH2Push(t *testing.T) {
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "GATEWAY_URL="+gatewayURL)
 	stdoutStderr, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Logf("Test: %s", stdoutStderr)
+	if !assert.NoError(t, err) {
+		t.Log(stdoutStderr)
 	}
-	assert.NoError(t, err)
 
 	g.server.Shutdown(context.Background())
 }
