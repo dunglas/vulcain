@@ -8,7 +8,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
-	"sync"
 
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -34,31 +33,10 @@ func addToVary(r *http.Response, header string) {
 }
 
 func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	pusher, explicitRequest, explicitRequestID := g.getPusher(rw, req)
+
 	rp := httputil.NewSingleHostReverseProxy(g.Options.Upstream)
-	defer rp.ServeHTTP(rw, req)
-
-	var wg sync.WaitGroup
-	parentPusher, childrenPusher, requestID := g.retrievePushers(rw, req)
-	if childrenPusher != nil {
-		// Block until reverse proxy's goroutine finishes
-		wg.Add(1)
-		// Cleanup
-		defer g.pushers.remove(requestID)
-		defer wg.Wait()
-		// Wait for the subrequests to finish
-		defer childrenPusher.Wait()
-
-		if parentPusher != nil {
-			// Mark this subrequest as finished
-			defer parentPusher.Done()
-		}
-	}
-
 	rp.ModifyResponse = func(r *http.Response) error {
-		if childrenPusher != nil {
-			defer wg.Done()
-		}
-
 		query := req.URL.Query()
 		var useFieldsHeader, useFieldsQuery, usePreloadHeader, usePreloadQuery bool
 
@@ -74,13 +52,17 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			usePreloadQuery = true
 		}
 
-		if !useFieldsHeader && !useFieldsQuery && !usePreloadHeader && !usePreloadQuery {
-			// No reserved query parameters, nothing to do
-			return nil
-		}
+		if (!useFieldsHeader && !useFieldsQuery && !usePreloadHeader && !usePreloadQuery) || !jsonRe.MatchString(r.Header.Get("Content-Type")) {
+			// No Vulcain hints, or not JSON: don't modify the response
+			if pusher != nil {
+				if explicitRequest {
+					//pusher.Wait()
+					g.pushers.remove(explicitRequestID)
+				} else {
+					pusher.Done()
+				}
+			}
 
-		if !jsonRe.MatchString(r.Header.Get("Content-Type")) {
-			// Not JSON, nothing to do
 			return nil
 		}
 
@@ -114,25 +96,29 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 			uStr := u.String()
 			// TODO: allow to disable Server Push from the config
-			if !u.IsAbs() && childrenPusher != nil {
+			if !u.IsAbs() && pusher != nil {
 				pushOptions := &http.PushOptions{Header: req.Header}
 				pushOptions.Header.Del("Preload")
 				pushOptions.Header.Del("Fields")
 				pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
 
-				for _, pp := range n.strings(Preload, "") {
-					if pp != "/" {
-						pushOptions.Header.Add("Preload", pp)
+				if usePreloadHeader {
+					for _, pp := range n.strings(Preload, "") {
+						if pp != "/" {
+							pushOptions.Header.Add("Preload", pp)
+						}
 					}
 				}
-				for _, fp := range n.strings(Preload, "") {
-					if fp != "/" {
-						pushOptions.Header.Add("Fields", fp)
+				if useFieldsHeader {
+					for _, fp := range n.strings(Preload, "") {
+						if fp != "/" {
+							pushOptions.Header.Add("Fields", fp)
+						}
 					}
 				}
 
 				// HTTP/2, and relative relation, push!
-				if err := childrenPusher.Push(uStr, pushOptions); err == nil {
+				if err := pusher.Push(uStr, pushOptions); err == nil {
 					log.WithFields(log.Fields{"relation": uStr}).Debug("Relation pushed")
 					return
 				}
@@ -153,6 +139,18 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			addToVary(r, "Preload")
 		}
 
+		if pusher != nil {
+			if explicitRequest {
+				pusher.Wait()
+				if explicitRequest {
+					g.pushers.remove(explicitRequestID)
+				}
+			} else {
+				// Relations pushed
+				pusher.Done()
+			}
+		}
+
 		newBodyBuffer := bytes.NewBuffer(newBody)
 		r.Body = ioutil.NopCloser(newBodyBuffer)
 		r.Header["Content-Length"] = []string{fmt.Sprint(newBodyBuffer.Len())}
@@ -160,44 +158,46 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return nil
 	}
 	rp.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
-		if childrenPusher != nil {
-			defer wg.Done()
-		}
-
 		// Adapted from the default ErrorHandler
 		log.Errorf("http: proxy error: %v", err)
 		rw.WriteHeader(http.StatusBadGateway)
+
+		if pusher != nil && !explicitRequest {
+			pusher.Done()
+		}
 	}
+	rp.ServeHTTP(rw, req)
 }
 
-func (g *Gateway) retrievePushers(rw http.ResponseWriter, req *http.Request) (parentPusher *pusher, childrenPusher *pusher, requestID string) {
+func (g *Gateway) getPusher(rw http.ResponseWriter, req *http.Request) (p *pusher, explicitRequest bool, explicitRequestID string) {
 	internalPusher, ok := rw.(http.Pusher)
 	if !ok {
 		// Not an HTTP/2 connection
-		return nil, nil, ""
+		return nil, false, ""
 	}
 
 	// Need https://github.com/golang/go/issues/20566 to get rid of this hack
-	parentID := req.Header.Get("Vulcain-Parent")
-	if parentID != "" {
-		parentPusher, ok = g.pushers.get(parentID)
-		if ok {
-			internalPusher = parentPusher.internalPusher
-		} else {
+	explicitRequestID = req.Header.Get("Vulcain-Explicit-Request")
+	if explicitRequestID != "" {
+		p, ok = g.pushers.get(explicitRequestID)
+		if !ok {
 			// Should not happen, is an attacker forging an evil request?
-			log.WithFields(log.Fields{"uri": req.RequestURI, "parentID": parentID}).Debug("Pusher not found")
-			parentID = ""
+			log.WithFields(log.Fields{"uri": req.RequestURI, "explicitRequestID": explicitRequestID}).Debug("Pusher not found")
+			explicitRequestID = ""
 		}
 	}
 
-	// Store a new waitPusher to be used by children
-	requestID = uuid.Must(uuid.NewV4()).String()
-	req.Header.Set("Vulcain-Parent", requestID)
+	if explicitRequestID == "" {
+		// Explicit request
+		explicitRequestID = uuid.Must(uuid.NewV4()).String()
+		p = &pusher{internalPusher: internalPusher}
+		req.Header.Set("Vulcain-Explicit-Request", explicitRequestID)
+		g.pushers.add(explicitRequestID, p)
 
-	childrenPusher = &pusher{internalPusher: internalPusher}
-	g.pushers.add(requestID, childrenPusher)
+		return p, true, explicitRequestID
+	}
 
-	return parentPusher, childrenPusher, requestID
+	return p, false, explicitRequestID
 }
 
 // NewGatewayFromEnv creates a gateway using the configuration set in env vars

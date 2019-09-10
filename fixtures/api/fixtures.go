@@ -32,6 +32,7 @@ func Fixtures(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Add("Content-Type", "application/ld+json")
 	rw.Header().Add("Access-Control-Allow-Origin", "http://localhost:8081")
 	rw.Header().Add("Access-Control-Allow-Credentials", "true")
+	rw.Header().Add("Access-Control-Allow-Headers", "Cache-Control")
 
 	var myCookieValue string
 	if cookie, err := req.Cookie("myCookie"); err == nil {

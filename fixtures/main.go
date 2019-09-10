@@ -14,7 +14,7 @@ func main() {
 		fmt.Fprint(rw, `<h1>HTTP/2 Fixtures</h1>
 		<script>
 		const apiURL = "https://localhost:3000";
-		fetch(apiURL + "/books.jsonld?preload=/hydra:member/*/author", {credentials: "include"})
+		fetch(apiURL + "/books.jsonld?preload=/hydra:member/*/author", {credentials: "include", headers: {"Cache-Control": "no-cache, no-store"}})
 			.then(booksResp => {
 				document.write("<p>Books: <code>/books.jsonld</code> loaded...</p>")
 				console.log(booksResp)

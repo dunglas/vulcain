@@ -3,10 +3,24 @@
 
 require __DIR__.'/vendor/autoload.php';
 
-$gatewayUrl = $_SERVER['GATEWAY_URL'] ?? 'https://localhost:3000';
-
 use Symfony\Component\HttpClient\CurlHttpClient;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 use Psr\Log\AbstractLogger;
+
+function printResponse(ResponseInterface $response): void
+{
+    echo "=======\n";
+    echo "Headers\n";
+    echo "=======\n";
+    echo var_dump($response->getInfo());
+    echo "=======\n";
+    echo "Content\n";
+    echo "=======\n";
+    echo $response->getContent();
+    echo "\n-------\n";
+}
+
+$gatewayUrl = $_SERVER['GATEWAY_URL'] ?? 'https://localhost:3000';
 
 $logger = new class() extends AbstractLogger {
     public $logs = [];
@@ -20,38 +34,29 @@ $logger = new class() extends AbstractLogger {
 $client = new CurlHttpClient(['verify_peer' => false, 'verify_host' => false, 'headers' => ['Cookie' => 'myCookie=bar']], 6, 5);
 $client->setLogger($logger);
 
-$books = $client->request('GET', "$gatewayUrl/books.jsonld?preload=/hydra:member/*/author");
-$books->getHeaders();
+$urls = [
+    '/books.jsonld?preload=/hydra:member/*/author',
+    '/books/1.jsonld?preload=%2Fauthor',
+    '/authors/1.jsonld',
+];
+foreach ($urls as $url) {
+    $res = $client->request('GET', $gatewayUrl.$url);
+    printResponse($res);
+}
 
-$book1 = $client->request('GET', "$gatewayUrl/books/1.jsonld");
-$book1->getHeaders();
-
-$book2 = $client->request('GET', "$gatewayUrl/books/2.jsonld");
-$book2->getHeaders();
-
-$authors1 = $client->request('GET', "$gatewayUrl/authors/1.jsonld");
-$authors1->getHeaders();
-
-$authors2 = $client->request('GET', "$gatewayUrl/authors/1.jsonld");
-$authors2->getHeaders();
-
-fwrite(STDERR, implode("\n", $logger->logs)."\n");
+echo implode("\n", $logger->logs)."\n";
 
 $expected = [
-    "Request: \"GET $gatewayUrl/books.jsonld?preload=/hydra:member/*/author\"",
-    "Queueing pushed response: \"$gatewayUrl/books/1.jsonld?preload=%2Fauthor\"",
-    "Queueing pushed response: \"$gatewayUrl/books/2.jsonld?preload=%2Fauthor\"",
-    "Queueing pushed response: \"$gatewayUrl/authors/1.jsonld\"",
-    "Queueing pushed response: \"$gatewayUrl/authors/1.jsonld\"",
-    "Response: \"200 $gatewayUrl/books.jsonld?preload=/hydra:member/*/author\"",
-    "Request: \"GET $gatewayUrl/books/1.jsonld\"",
-    "Response: \"200 $gatewayUrl/books/1.jsonld\"",
-    "Request: \"GET $gatewayUrl/books/2.jsonld\"",
-    "Response: \"200 $gatewayUrl/books/2.jsonld\"",
-    "Accepting pushed response: \"GET $gatewayUrl/authors/1.jsonld\"",
-    "Response: \"200 $gatewayUrl/authors/1.jsonld\"",
-    "Request: \"GET $gatewayUrl/authors/1.jsonld\"",
-    "Response: \"200 $gatewayUrl/authors/1.jsonld\"",
+    'Request: "GET '.$gatewayUrl.'/books.jsonld?preload=/hydra:member/*/author"',
+    'Queueing pushed response: "'.$gatewayUrl.'/books/1.jsonld?preload=%2Fauthor"',
+    'Queueing pushed response: "'.$gatewayUrl.'/books/2.jsonld?preload=%2Fauthor"',
+    'Queueing pushed response: "'.$gatewayUrl.'/authors/1.jsonld"',
+    'Queueing pushed response: "'.$gatewayUrl.'/authors/1.jsonld"',
+    'Response: "200 '.$gatewayUrl.'/books.jsonld?preload=/hydra:member/*/author"',
+    'Accepting pushed response: "GET '.$gatewayUrl.'/books/1.jsonld?preload=%2Fauthor"',
+    'Response: "200 '.$gatewayUrl.'/books/1.jsonld?preload=%2Fauthor"',
+    'Accepting pushed response: "GET '.$gatewayUrl.'/authors/1.jsonld"',
+    'Response: "200 '.$gatewayUrl.'/authors/1.jsonld"',
 ];
 
 if ($logger->logs !== $expected) {
