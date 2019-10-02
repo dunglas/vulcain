@@ -56,7 +56,6 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			// No Vulcain hints, or not JSON: don't modify the response
 			if pusher != nil {
 				if explicitRequest {
-					//pusher.Wait()
 					g.pushers.remove(explicitRequestID)
 				} else {
 					pusher.Done()
@@ -110,7 +109,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 					}
 				}
 				if useFieldsHeader {
-					for _, fp := range n.strings(Preload, "") {
+					for _, fp := range n.strings(Fields, "") {
 						if fp != "/" {
 							pushOptions.Header.Add("Fields", fp)
 						}
@@ -118,11 +117,16 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				}
 
 				// HTTP/2, and relative relation, push!
-				if err := pusher.Push(uStr, pushOptions); err == nil {
+				err := pusher.Push(uStr, pushOptions)
+				if err == nil {
 					log.WithFields(log.Fields{"relation": uStr}).Debug("Relation pushed")
 					return
 				}
-				log.WithFields(log.Fields{"relation": uStr, "reason": err}).Info("Failed to push")
+				log.WithFields(log.Fields{"relation": uStr, "reason": err.Error()}).Debug("Failed to push")
+				if _, ok := err.(*relationAlreadyPushedError); ok {
+					// Don't add the preload header for something already pushed
+					return
+				}
 			}
 
 			// Use preload Link headers as fallback (https://www.w3.org/TR/preload/)
@@ -142,9 +146,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if pusher != nil {
 			if explicitRequest {
 				pusher.Wait()
-				if explicitRequest {
-					g.pushers.remove(explicitRequestID)
-				}
+				g.pushers.remove(explicitRequestID)
 			} else {
 				// Relations pushed
 				pusher.Done()
@@ -169,7 +171,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rp.ServeHTTP(rw, req)
 }
 
-func (g *Gateway) getPusher(rw http.ResponseWriter, req *http.Request) (p *pusher, explicitRequest bool, explicitRequestID string) {
+func (g *Gateway) getPusher(rw http.ResponseWriter, req *http.Request) (p *waitPusher, explicitRequest bool, explicitRequestID string) {
 	internalPusher, ok := rw.(http.Pusher)
 	if !ok {
 		// Not an HTTP/2 connection
@@ -190,7 +192,7 @@ func (g *Gateway) getPusher(rw http.ResponseWriter, req *http.Request) (p *pushe
 	if explicitRequestID == "" {
 		// Explicit request
 		explicitRequestID = uuid.Must(uuid.NewV4()).String()
-		p = &pusher{internalPusher: internalPusher}
+		p = newWaitPusher(internalPusher, g.Options.MaxPushes)
 		req.Header.Set("Vulcain-Explicit-Request", explicitRequestID)
 		g.pushers.add(explicitRequestID, p)
 
@@ -210,11 +212,11 @@ func NewGatewayFromEnv() (*Gateway, error) {
 	return NewGateway(options), nil
 }
 
-// NewGateway creates a gateway
+// NewGateway creates a Vulcain gateway instance
 func NewGateway(options *Options) *Gateway {
 	return &Gateway{
 		options,
 		nil,
-		&pushers{pusherMap: make(map[string]*pusher)},
+		&pushers{pusherMap: make(map[string]*waitPusher)},
 	}
 }

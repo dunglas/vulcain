@@ -37,7 +37,7 @@ func (g *Gateway) Serve() {
 	var err error
 
 	if !acme && g.Options.CertFile == "" && g.Options.KeyFile == "" {
-		log.WithFields(log.Fields{"protocol": "http"}).Info("Vulcain started")
+		log.WithFields(log.Fields{"protocol": "http", "addr": g.Options.Addr}).Info("Vulcain started")
 		err = g.server.ListenAndServe()
 	} else {
 		// TLS
@@ -55,7 +55,7 @@ func (g *Gateway) Serve() {
 			go http.ListenAndServe(":http", certManager.HTTPHandler(nil))
 		}
 
-		log.WithFields(log.Fields{"protocol": "https"}).Info("Vulcain started")
+		log.WithFields(log.Fields{"protocol": "https", "addr": g.Options.Addr}).Info("Vulcain started")
 		err = g.server.ListenAndServeTLS(g.Options.CertFile, g.Options.KeyFile)
 	}
 

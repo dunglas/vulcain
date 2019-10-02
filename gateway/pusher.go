@@ -5,6 +5,7 @@ package gateway
 // MIT License
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 )
@@ -12,42 +13,75 @@ import (
 // From the RFC:
 //   The server SHOULD send PUSH_PROMISE (Section 6.6) frames prior to sending any frames that reference the promised responses.
 //   This avoids a race where clients issue requests prior to receiving any PUSH_PROMISE frames.
-type pusher struct {
+type waitPusher struct {
+	nbPushes   int
+	pushedURLs map[string]struct{}
+	maxPushes  int
 	sync.WaitGroup
+	sync.RWMutex
 	internalPusher http.Pusher
 }
 
-func (r *pusher) Push(target string, opts *http.PushOptions) error {
-	r.Add(1)
-	if err := r.internalPusher.Push(target, opts); err != nil {
-		r.Done()
+type relationAlreadyPushedError struct{}
 
+func (f relationAlreadyPushedError) Error() string {
+	return "Relation already pushed"
+}
+
+func (p *waitPusher) Push(url string, opts *http.PushOptions) error {
+	if p.maxPushes != -1 && p.nbPushes >= p.maxPushes {
+		return fmt.Errorf("Maximum allowed pushes (%d) reached", p.maxPushes)
+	}
+
+	cacheKey := fmt.Sprintf(":p:%v:f:%v:u:%s", opts.Header["Preload"], opts.Header["Fields"], url)
+
+	p.Lock()
+	if _, ok := p.pushedURLs[cacheKey]; ok {
+		p.Unlock()
+		return &relationAlreadyPushedError{}
+	}
+
+	p.nbPushes++
+	p.pushedURLs[cacheKey] = struct{}{}
+	p.Unlock()
+
+	p.Add(1)
+	if err := p.internalPusher.Push(url, opts); err != nil {
+		p.Done()
 		return err
 	}
 
 	return nil
 }
 
+func newWaitPusher(p http.Pusher, maxPushes int) *waitPusher {
+	return &waitPusher{
+		internalPusher: p,
+		maxPushes:      maxPushes,
+		pushedURLs:     make(map[string]struct{}),
+	}
+}
+
 type pushers struct {
 	sync.RWMutex
-	pusherMap map[string]*pusher
+	pusherMap map[string]*waitPusher
 }
 
-func (r *pushers) add(id string, p *pusher) {
-	r.Lock()
-	r.pusherMap[id] = p
-	r.Unlock()
+func (p *pushers) add(id string, w *waitPusher) {
+	p.Lock()
+	p.pusherMap[id] = w
+	p.Unlock()
 }
 
-func (r *pushers) get(id string) (*pusher, bool) {
-	r.RLock()
-	p, ok := r.pusherMap[id]
-	r.RUnlock()
-	return p, ok
+func (p *pushers) get(id string) (*waitPusher, bool) {
+	p.RLock()
+	w, ok := p.pusherMap[id]
+	p.RUnlock()
+	return w, ok
 }
 
-func (r *pushers) remove(id string) {
-	r.Lock()
-	delete(r.pusherMap, id)
-	r.Unlock()
+func (p *pushers) remove(id string) {
+	p.Lock()
+	delete(p.pusherMap, id)
+	p.Unlock()
 }

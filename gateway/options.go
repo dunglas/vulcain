@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -13,6 +14,7 @@ type Options struct {
 	Debug               bool
 	Addr                string
 	Upstream            *url.URL
+	MaxPushes           int
 	AcmeHosts           []string
 	AcmeCertDir         string
 	CertFile            string
@@ -43,10 +45,22 @@ func NewOptionsFromEnv() (*Options, error) {
 		return nil, err
 	}
 
+	var maxPushes int
+	maxPushesStr := os.Getenv("MAX_PUSHES")
+	if maxPushesStr == "" {
+		maxPushes = -1
+	} else {
+		maxPushes, err = strconv.Atoi(maxPushesStr)
+		if err != nil {
+			return nil, fmt.Errorf(`MAX_PUSHES: invalid value "%s" (%s)`, maxPushesStr, err)
+		}
+	}
+
 	options := &Options{
 		os.Getenv("DEBUG") == "1",
 		os.Getenv("ADDR"),
 		upstream,
+		maxPushes,
 		splitVar(os.Getenv("ACME_HOSTS")),
 		os.Getenv("ACME_CERT_DIR"),
 		os.Getenv("CERT_FILE"),

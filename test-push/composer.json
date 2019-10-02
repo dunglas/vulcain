@@ -1,6 +1,7 @@
 {
     "require": {
-        "symfony/http-client": "^4.3@dev"
+        "symfony/http-client": "^4.3@dev",
+        "sebastian/diff": "^3.0@dev"
     },
     "minimum-stability": "dev"
 }

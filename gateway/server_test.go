@@ -25,10 +25,11 @@ func createTestingUtils() (*httptest.Server, *Gateway, http.Client) {
 
 	upstreamURL, _ := url.Parse(upstream.URL)
 	g := NewGateway(&Options{
-		Addr:     testAddr,
-		Upstream: upstreamURL,
-		CertFile: "../fixtures/tls/server.crt",
-		KeyFile:  "../fixtures/tls/server.key",
+		Addr:      testAddr,
+		MaxPushes: -1,
+		Upstream:  upstreamURL,
+		CertFile:  "../fixtures/tls/server.crt",
+		KeyFile:   "../fixtures/tls/server.key",
 	})
 	go func() {
 		g.Serve()
@@ -66,12 +67,30 @@ func TestH2Push(t *testing.T) {
 	upstream, g, _ := createTestingUtils()
 	defer upstream.Close()
 
-	cmd := exec.Command("../test-push/test-push.php")
+	for _, test := range []string{"fields-query", "fields-header", "preload-query", "preload-header", "fields-preload-query", "fields-preload-header"} {
+		cmd := exec.Command("../test-push/" + test + ".php")
+		cmd.Env = os.Environ()
+		cmd.Env = append(cmd.Env, "GATEWAY_URL="+gatewayURL)
+		stdoutStderr, err := cmd.CombinedOutput()
+		if !assert.NoError(t, err) {
+			t.Log(string(stdoutStderr))
+		}
+	}
+
+	g.server.Shutdown(context.Background())
+}
+
+func TestH2PushLimit(t *testing.T) {
+	upstream, g, _ := createTestingUtils()
+	g.Options.MaxPushes = 2
+	defer upstream.Close()
+
+	cmd := exec.Command("../test-push/push-limit.php")
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "GATEWAY_URL="+gatewayURL)
 	stdoutStderr, err := cmd.CombinedOutput()
 	if !assert.NoError(t, err) {
-		t.Log(stdoutStderr)
+		t.Log(string(stdoutStderr))
 	}
 
 	g.server.Shutdown(context.Background())

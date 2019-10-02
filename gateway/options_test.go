@@ -12,6 +12,7 @@ import (
 func TestNewOptionsFormNew(t *testing.T) {
 	testEnv := map[string]string{
 		"UPSTREAM":              "http://example.com",
+		"MAX_PUSHES":            "-1",
 		"ACME_CERT_DIR":         "/tmp",
 		"ACME_HOSTS":            "example.com,example.org",
 		"ADDR":                  "127.0.0.1:8080",
@@ -34,6 +35,7 @@ func TestNewOptionsFormNew(t *testing.T) {
 		true,
 		"127.0.0.1:8080",
 		u,
+		-1,
 		[]string{"example.com", "example.org"},
 		"/tmp",
 		"foo",
@@ -72,4 +74,18 @@ func TestInvalidDuration(t *testing.T) {
 
 		os.Unsetenv(elem)
 	}
+}
+
+func TestInvalidUpstream(t *testing.T) {
+	os.Setenv("UPSTREAM", " http://foo.com")
+	defer os.Unsetenv("UPSTREAM")
+	_, err := NewOptionsFromEnv()
+	assert.EqualError(t, err, "parse  http://foo.com: first path segment in URL cannot contain colon")
+}
+
+func TestInvalidMaxPushes(t *testing.T) {
+	os.Setenv("MAX_PUSHES", "invalid")
+	defer os.Unsetenv("MAX_PUSHES")
+	_, err := NewOptionsFromEnv()
+	assert.EqualError(t, err, `MAX_PUSHES: invalid value "invalid" (strconv.Atoi: parsing "invalid": invalid syntax)`)
 }
