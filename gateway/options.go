@@ -23,6 +23,7 @@ type options struct {
 	WriteTimeout        time.Duration
 	Compress            bool
 	UseForwardedHeaders bool
+	OpenAPIFile         string
 }
 
 // NewOptionsFromEnv creates a new option instance from environment
@@ -69,6 +70,7 @@ func NewOptionsFromEnv() (*options, error) {
 		writeTimeout,
 		os.Getenv("COMPRESS") != "0",
 		os.Getenv("USE_FORWARDED_HEADERS") == "1",
+		os.Getenv("OPENAPI_FILE"),
 	}
 
 	missingEnv := make([]string, 0, 2)

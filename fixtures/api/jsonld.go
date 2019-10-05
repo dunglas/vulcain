@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 )
+
+// JSONLDHandler provides a dummy JSON-LD API
+type JSONLDHandler struct {
+}
 
 // BooksContent contains the raw JSON of /books.jsonld
 const BooksContent = `{
@@ -27,8 +30,7 @@ const Author1Content = `{
 	"name": "Kévin"
 	}`
 
-// Fixtures provides a dummy API
-func Fixtures(rw http.ResponseWriter, req *http.Request) {
+func (h *JSONLDHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Add("Content-Type", "application/ld+json")
 	rw.Header().Add("Access-Control-Allow-Origin", "http://localhost:8081")
 	rw.Header().Add("Access-Control-Allow-Credentials", "true")
@@ -41,30 +43,29 @@ func Fixtures(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Add("Passed-Cookie", myCookieValue)
 	}
 
-	if strings.HasPrefix(req.RequestURI, "/books.jsonld") {
-		if myCookieValue == "" {
-			http.SetCookie(rw, &http.Cookie{Name: "myCookie", Value: "foo"})
-		}
+	if myCookieValue == "" {
+		http.SetCookie(rw, &http.Cookie{Name: "myCookie", Value: "foo"})
+	}
 
+	m := http.NewServeMux()
+	m.HandleFunc("/books.jsonld", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(rw, BooksContent)
-
-		return
-	}
-
-	if strings.HasPrefix(req.RequestURI, "/authors/") {
+	})
+	m.HandleFunc("/authors/", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(rw, Author1Content)
+	})
+	m.HandleFunc("/books/", func(rw http.ResponseWriter, req *http.Request) {
+		u, _ := url.Parse(req.RequestURI)
+		u.RawQuery = ""
 
-		return
-	}
+		encodedURI, _ := json.Marshal(u.String())
+		fmt.Fprint(rw, `{
+	"@id": `+string(encodedURI)+`,
+	"title": "Book 1",
+	"description": "A good book",
+	"author": "/authors/1.jsonld"
+	}`)
+	})
 
-	u, _ := url.Parse(req.RequestURI)
-	u.RawQuery = ""
-
-	encodedURI, _ := json.Marshal(u.String())
-	fmt.Fprint(rw, `{
-"@id": `+string(encodedURI)+`,
-"title": "Book 1",
-"description": "A good book",
-"author": "/authors/1.jsonld"
-}`)
+	m.ServeHTTP(rw, req)
 }

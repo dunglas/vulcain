@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,9 +18,10 @@ var jsonRe = regexp.MustCompile(`(?i)\bjson\b`)
 
 // Gateway is the main struct
 type Gateway struct {
-	options *options
-	server  *http.Server
-	pushers *pushers
+	options       *options
+	server        *http.Server
+	pushers       *pushers
+	openAPIRouter *openapi3filter.Router
 }
 
 func addToVary(r *http.Response, header string) {
@@ -84,7 +86,12 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			tree.importPointers(Fields, query["fields"])
 		}
 
+		var route *openapi3filter.Route
 		newBody := traverseJSON(currentBody, tree, useFieldsHeader || useFieldsQuery, func(u *url.URL, n *node) {
+			if g.openAPIRouter != nil && route == nil {
+				route, _, err = g.openAPIRouter.FindRoute("GET", req.URL)
+			}
+
 			if usePreloadQuery || useFieldsQuery {
 				urlRewriter(u, n)
 			}
@@ -213,10 +220,21 @@ func NewGatewayFromEnv() (*Gateway, error) {
 }
 
 // NewGateway creates a Vulcain gateway instance
+<<<<<<< HEAD
 func NewGateway(options *options) *Gateway {
+=======
+func NewGateway(options *Options) *Gateway {
+	var router *openapi3filter.Router
+
+	if options.OpenAPIFile != "" {
+		router = openapi3filter.NewRouter().WithSwaggerFromFile(options.OpenAPIFile)
+	}
+
+>>>>>>> wip
 	return &Gateway{
 		options,
 		nil,
 		&pushers{pusherMap: make(map[string]*waitPusher)},
+		router,
 	}
 }

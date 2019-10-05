@@ -21,7 +21,7 @@ const testAddr = "127.0.0.1:4343"
 const gatewayURL = "https://" + testAddr
 
 func createTestingUtils() (*httptest.Server, *Gateway, http.Client) {
-	upstream := httptest.NewServer(http.HandlerFunc(api.Fixtures))
+	upstream := httptest.NewServer(&api.JSONLDHandler{})
 
 	upstreamURL, _ := url.Parse(upstream.URL)
 	g := NewGateway(&options{

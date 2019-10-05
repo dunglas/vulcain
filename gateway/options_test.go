@@ -23,6 +23,7 @@ func TestNewOptionsFormNew(t *testing.T) {
 		"READ_TIMEOUT":          "1m",
 		"WRITE_TIMEOUT":         "40s",
 		"USE_FORWARDED_HEADERS": "1",
+		"OPENAPI_FILE":          "openapi.yaml",
 	}
 	for k, v := range testEnv {
 		os.Setenv(k, v)
@@ -44,6 +45,7 @@ func TestNewOptionsFormNew(t *testing.T) {
 		40 * time.Second,
 		false,
 		true,
+		"openapi.yaml",
 	}, opts)
 	assert.Nil(t, err)
 }

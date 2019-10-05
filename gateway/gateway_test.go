@@ -31,7 +31,7 @@ func TestNewGatewayFromEnv(t *testing.T) {
 }
 
 func createServers() (*httptest.Server, *httptest.Server) {
-	upstream := httptest.NewServer(http.HandlerFunc(api.Fixtures))
+	upstream := httptest.NewServer(&api.JSONLDHandler{})
 
 	upstreamURL, _ := url.Parse(upstream.URL)
 	g := NewGateway(&options{Upstream: upstreamURL})

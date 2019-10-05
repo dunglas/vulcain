@@ -18,8 +18,8 @@ func main() {
 		log.Println("http://localhost:8081 started")
 		log.Fatal(s.ListenAndServe())
 	}()
-
-	http.HandleFunc("/", api.Fixtures)
+	http.Handle("/oa/", http.StripPrefix("/oa", &api.OpenAPIHandler{}))
+	http.Handle("/", &api.JSONLDHandler{})
 
 	log.Println("https://localhost:3000 started")
 	log.Fatal(http.ListenAndServe(":8080", nil))
