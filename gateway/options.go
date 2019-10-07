@@ -10,7 +10,7 @@ import (
 )
 
 // Options stores the gateway's options
-type Options struct {
+type options struct {
 	Debug               bool
 	Addr                string
 	Upstream            *url.URL
@@ -27,7 +27,7 @@ type Options struct {
 
 // NewOptionsFromEnv creates a new option instance from environment
 // It returns an error if mandatory env env vars are missing
-func NewOptionsFromEnv() (*Options, error) {
+func NewOptionsFromEnv() (*options, error) {
 	var err error
 
 	readTimeout, err := parseDurationFromEnvVar("READ_TIMEOUT", time.Duration(0))
@@ -56,7 +56,7 @@ func NewOptionsFromEnv() (*Options, error) {
 		}
 	}
 
-	options := &Options{
+	o := &options{
 		os.Getenv("DEBUG") == "1",
 		os.Getenv("ADDR"),
 		upstream,
@@ -72,17 +72,17 @@ func NewOptionsFromEnv() (*Options, error) {
 	}
 
 	missingEnv := make([]string, 0, 2)
-	if len(options.CertFile) != 0 && len(options.KeyFile) == 0 {
+	if len(o.CertFile) != 0 && len(o.KeyFile) == 0 {
 		missingEnv = append(missingEnv, "KEY_FILE")
 	}
-	if len(options.KeyFile) != 0 && len(options.CertFile) == 0 {
+	if len(o.KeyFile) != 0 && len(o.CertFile) == 0 {
 		missingEnv = append(missingEnv, "CERT_FILE")
 	}
 
 	if len(missingEnv) > 0 {
 		return nil, fmt.Errorf("The following environment variable must be defined: %s", missingEnv)
 	}
-	return options, nil
+	return o, nil
 }
 
 func splitVar(v string) []string {

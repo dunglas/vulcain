@@ -24,7 +24,7 @@ func createTestingUtils() (*httptest.Server, *Gateway, http.Client) {
 	upstream := httptest.NewServer(http.HandlerFunc(api.Fixtures))
 
 	upstreamURL, _ := url.Parse(upstream.URL)
-	g := NewGateway(&Options{
+	g := NewGateway(&options{
 		Addr:      testAddr,
 		MaxPushes: -1,
 		Upstream:  upstreamURL,
@@ -82,7 +82,7 @@ func TestH2Push(t *testing.T) {
 
 func TestH2PushLimit(t *testing.T) {
 	upstream, g, _ := createTestingUtils()
-	g.Options.MaxPushes = 2
+	g.options.MaxPushes = 2
 	defer upstream.Close()
 
 	cmd := exec.Command("../test-push/push-limit.php")

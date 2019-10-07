@@ -31,7 +31,7 @@ func TestNewOptionsFormNew(t *testing.T) {
 
 	u, _ := url.Parse("http://example.com")
 	opts, err := NewOptionsFromEnv()
-	assert.Equal(t, &Options{
+	assert.Equal(t, &options{
 		true,
 		"127.0.0.1:8080",
 		u,

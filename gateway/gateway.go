@@ -17,7 +17,7 @@ var jsonRe = regexp.MustCompile(`(?i)\bjson\b`)
 
 // Gateway is the main struct
 type Gateway struct {
-	Options *Options
+	options *options
 	server  *http.Server
 	pushers *pushers
 }
@@ -35,7 +35,7 @@ func addToVary(r *http.Response, header string) {
 func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	pusher, explicitRequest, explicitRequestID := g.getPusher(rw, req)
 
-	rp := httputil.NewSingleHostReverseProxy(g.Options.Upstream)
+	rp := httputil.NewSingleHostReverseProxy(g.options.Upstream)
 	rp.ModifyResponse = func(r *http.Response) error {
 		query := req.URL.Query()
 		var useFieldsHeader, useFieldsQuery, usePreloadHeader, usePreloadQuery bool
@@ -192,7 +192,7 @@ func (g *Gateway) getPusher(rw http.ResponseWriter, req *http.Request) (p *waitP
 	if explicitRequestID == "" {
 		// Explicit request
 		explicitRequestID = uuid.Must(uuid.NewV4()).String()
-		p = newWaitPusher(internalPusher, g.Options.MaxPushes)
+		p = newWaitPusher(internalPusher, g.options.MaxPushes)
 		req.Header.Set("Vulcain-Explicit-Request", explicitRequestID)
 		g.pushers.add(explicitRequestID, p)
 
@@ -213,7 +213,7 @@ func NewGatewayFromEnv() (*Gateway, error) {
 }
 
 // NewGateway creates a Vulcain gateway instance
-func NewGateway(options *Options) *Gateway {
+func NewGateway(options *options) *Gateway {
 	return &Gateway{
 		options,
 		nil,

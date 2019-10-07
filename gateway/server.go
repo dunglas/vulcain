@@ -14,10 +14,10 @@ import (
 // Serve starts the HTTP server
 func (g *Gateway) Serve() {
 	g.server = &http.Server{
-		Addr:         g.Options.Addr,
+		Addr:         g.options.Addr,
 		Handler:      g.chainHandlers(),
-		ReadTimeout:  g.Options.ReadTimeout,
-		WriteTimeout: g.Options.WriteTimeout,
+		ReadTimeout:  g.options.ReadTimeout,
+		WriteTimeout: g.options.WriteTimeout,
 	}
 
 	idleConnsClosed := make(chan struct{})
@@ -33,21 +33,21 @@ func (g *Gateway) Serve() {
 		close(idleConnsClosed)
 	}()
 
-	acme := len(g.Options.AcmeHosts) > 0
+	acme := len(g.options.AcmeHosts) > 0
 	var err error
 
-	if !acme && g.Options.CertFile == "" && g.Options.KeyFile == "" {
-		log.WithFields(log.Fields{"protocol": "http", "addr": g.Options.Addr}).Info("Vulcain started")
+	if !acme && g.options.CertFile == "" && g.options.KeyFile == "" {
+		log.WithFields(log.Fields{"protocol": "http", "addr": g.options.Addr}).Info("Vulcain started")
 		err = g.server.ListenAndServe()
 	} else {
 		// TLS
 		if acme {
 			certManager := &autocert.Manager{
 				Prompt:     autocert.AcceptTOS,
-				HostPolicy: autocert.HostWhitelist(g.Options.AcmeHosts...),
+				HostPolicy: autocert.HostWhitelist(g.options.AcmeHosts...),
 			}
-			if g.Options.AcmeCertDir != "" {
-				certManager.Cache = autocert.DirCache(g.Options.AcmeCertDir)
+			if g.options.AcmeCertDir != "" {
+				certManager.Cache = autocert.DirCache(g.options.AcmeCertDir)
 			}
 			g.server.TLSConfig = certManager.TLSConfig()
 
@@ -55,8 +55,8 @@ func (g *Gateway) Serve() {
 			go http.ListenAndServe(":http", certManager.HTTPHandler(nil))
 		}
 
-		log.WithFields(log.Fields{"protocol": "https", "addr": g.Options.Addr}).Info("Vulcain started")
-		err = g.server.ListenAndServeTLS(g.Options.CertFile, g.Options.KeyFile)
+		log.WithFields(log.Fields{"protocol": "https", "addr": g.options.Addr}).Info("Vulcain started")
+		err = g.server.ListenAndServeTLS(g.options.CertFile, g.options.KeyFile)
 	}
 
 	if err != http.ErrServerClosed {
@@ -69,14 +69,14 @@ func (g *Gateway) Serve() {
 // chainHandlers configures and chains handlers
 func (g *Gateway) chainHandlers() http.Handler {
 	var useForwardedHeadersHandlers http.Handler
-	if g.Options.UseForwardedHeaders {
+	if g.options.UseForwardedHeaders {
 		useForwardedHeadersHandlers = handlers.ProxyHeaders(g)
 	} else {
 		useForwardedHeadersHandlers = g
 	}
 
 	var compressHandler http.Handler
-	if g.Options.Compress {
+	if g.options.Compress {
 		compressHandler = handlers.CompressHandler(useForwardedHeadersHandlers)
 	} else {
 		compressHandler = useForwardedHeadersHandlers
@@ -85,7 +85,7 @@ func (g *Gateway) chainHandlers() http.Handler {
 	loggingHandler := handlers.CombinedLoggingHandler(os.Stderr, compressHandler)
 	recoveryHandler := handlers.RecoveryHandler(
 		handlers.RecoveryLogger(log.New()),
-		handlers.PrintRecoveryStack(g.Options.Debug),
+		handlers.PrintRecoveryStack(g.options.Debug),
 	)(loggingHandler)
 
 	return recoveryHandler
