@@ -74,7 +74,7 @@ func (g *Gateway) cleanupAfterRequest(p *waitPusher, explicitRequestID string, e
 
 func (g *Gateway) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, routeTested bool) *openapi3filter.Route {
 	if routeTested || g.openAPI == nil {
-		return nil
+		return route
 	}
 
 	return g.openAPI.getRoute(url)
@@ -101,22 +101,24 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		tree.importPointers(Preload, preload)
 		tree.importPointers(Fields, fields)
 
-		var openAPIroute *openapi3filter.Route
-		openAPIrouteTested := g.openAPI == nil
+		var (
+			oaRoute       *openapi3filter.Route
+			oaRouteTested bool
+		)
 		newBody := traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, v string) string {
 			var (
-				u          *url.URL
-				useOpenAPI bool
-				newValue   string
+				u        *url.URL
+				useOA    bool
+				newValue string
 			)
 
-			openAPIroute, openAPIrouteTested = g.getOpenAPIRoute(req.URL, openAPIroute, openAPIrouteTested), true
-			if u, useOpenAPI, err = g.parseRelation(n.String(), v, openAPIroute); err != nil {
+			oaRoute, oaRouteTested = g.getOpenAPIRoute(req.URL, oaRoute, oaRouteTested), true
+			if u, useOA, err = g.parseRelation(n.String(), v, oaRoute); err != nil {
 				return ""
 			}
 
 			// Never rewrite values when using OpenAPI, use header instead of query parameters
-			if (preloadQuery || fieldsQuery) && !useOpenAPI {
+			if (preloadQuery || fieldsQuery) && !useOA {
 				urlRewriter(u, n)
 				newValue = u.String()
 			}
@@ -147,10 +149,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		// Adapted from the default ErrorHandler
 		log.Errorf("http: proxy error: %v", err)
 		rw.WriteHeader(http.StatusBadGateway)
-
-		if pusher != nil && !explicitRequest {
-			pusher.Done()
-		}
+		g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, false)
 	}
 	rp.ServeHTTP(rw, req)
 }
@@ -161,7 +160,6 @@ func addPreloadHeader(resp *http.Response, link string) {
 	log.WithFields(log.Fields{"relation": link}).Debug("Link preload header added")
 }
 
-// TODO: allow to disable Server Push from the config
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 // TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
 func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *http.Response, n *node, preloadHeader, fieldsHeader bool) {
@@ -194,11 +192,17 @@ func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *
 	// HTTP/2, and relative relation, push!
 	if err := pusher.Push(url, pushOptions); err != nil {
 		// Don't add the preload header for something already pushed
-		if _, ok := err.(*relationAlreadyPushedError); !ok {
-			log.WithFields(log.Fields{"relation": url, "reason": err.Error()}).Debug("Failed to push")
+		if _, ok := err.(*relationAlreadyPushedError); ok {
+			return
 		}
 
 		addPreloadHeader(resp, url)
+		log.WithFields(log.Fields{
+			"node":     n.String(),
+			"relation": url,
+			"reason":   err,
+		}).Debug("Failed to push")
+
 		return
 	}
 
@@ -261,18 +265,18 @@ func NewGateway(options *Options) *Gateway {
 	}
 }
 
-func (g *Gateway) parseRelation(selector, rel string, route *openapi3filter.Route) (*url.URL, bool, error) {
-	var useOpenAPI bool
-	if route != nil {
-		if orel := g.openAPI.getRelation(route, selector, rel); orel != "" {
-			rel = orel
-			useOpenAPI = true
+func (g *Gateway) parseRelation(selector, rel string, oaRoute *openapi3filter.Route) (*url.URL, bool, error) {
+	var useOA bool
+	if oaRoute != nil {
+		if oaRel := g.openAPI.getRelation(oaRoute, selector, rel); oaRel != "" {
+			rel = oaRel
+			useOA = true
 		}
 	}
 
 	u, err := url.Parse(rel)
 	if err == nil {
-		return u, useOpenAPI, nil
+		return u, useOA, nil
 	}
 
 	log.WithFields(
@@ -280,7 +284,7 @@ func (g *Gateway) parseRelation(selector, rel string, route *openapi3filter.Rout
 			"node":     selector,
 			"relation": rel,
 			"reason":   err,
-		}).Debug("The URL generated using the OpenAPI specification is invalid")
+		}).Debug("The relation is an invalid URL")
 
-	return nil, false, err
+	return nil, useOA, err
 }

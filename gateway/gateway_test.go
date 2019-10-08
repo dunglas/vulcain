@@ -127,3 +127,15 @@ func TestUpstreamError(t *testing.T) {
 	assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
 	assert.Equal(t, "http: proxy error: dial tcp: lookup notexist: no such host", hook.LastEntry().Message)
 }
+
+func TestParseRelation(t *testing.T) {
+	g := NewGateway(&Options{OpenAPIFile: "../fixtures/openapi.yaml"})
+
+	u, _ := url.Parse("/oa/books/123")
+
+	u, _, _ = g.parseRelation("/author", "123", g.getOpenAPIRoute(u, nil, false))
+	assert.Equal(t, "/oa/authors/123", u.String())
+
+	u, _, _ = g.parseRelation("/invalid", " http://foo.com", nil)
+	assert.Nil(t, u)
+}

@@ -35,6 +35,7 @@ func (h *JSONLDHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Add("Access-Control-Allow-Origin", "http://localhost:8081")
 	rw.Header().Add("Access-Control-Allow-Credentials", "true")
 	rw.Header().Add("Access-Control-Allow-Headers", "Cache-Control")
+	rw.Header().Add("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS")
 	rw.Header().Add("Cache-Control", "public, max-age=30")
 
 	var myCookieValue string

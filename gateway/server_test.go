@@ -20,16 +20,24 @@ import (
 const testAddr = "127.0.0.1:4343"
 const gatewayURL = "https://" + testAddr
 
-func createTestingUtils() (*httptest.Server, *Gateway, http.Client) {
-	upstream := httptest.NewServer(&api.JSONLDHandler{})
+func createTestingUtils(openAPIfile string) (*httptest.Server, *Gateway, http.Client) {
+	var handler http.Handler
+	if openAPIfile == "" {
+		handler = &api.JSONLDHandler{}
+	} else {
+		handler = &api.OpenAPIHandler{}
+	}
+
+	upstream := httptest.NewServer(handler)
 
 	upstreamURL, _ := url.Parse(upstream.URL)
 	g := NewGateway(&Options{
-		Addr:      testAddr,
-		MaxPushes: -1,
-		Upstream:  upstreamURL,
-		CertFile:  "../fixtures/tls/server.crt",
-		KeyFile:   "../fixtures/tls/server.key",
+		Addr:        testAddr,
+		MaxPushes:   -1,
+		Upstream:    upstreamURL,
+		CertFile:    "../fixtures/tls/server.crt",
+		KeyFile:     "../fixtures/tls/server.key",
+		OpenAPIFile: openAPIfile,
 	})
 	go func() {
 		g.Serve()
@@ -45,7 +53,7 @@ func createTestingUtils() (*httptest.Server, *Gateway, http.Client) {
 }
 
 func TestH2NoPush(t *testing.T) {
-	upstream, g, client := createTestingUtils()
+	upstream, g, client := createTestingUtils("")
 	defer upstream.Close()
 
 	// loop until the gateway is ready
@@ -64,7 +72,7 @@ func TestH2NoPush(t *testing.T) {
 // Unfortunately, Go's HTTP client doesn't support Pushes yet (https://github.com/golang/go/issues/18594)
 // In the meantime, we use Symfony HttpClient
 func TestH2Push(t *testing.T) {
-	upstream, g, _ := createTestingUtils()
+	upstream, g, _ := createTestingUtils("")
 	defer upstream.Close()
 
 	for _, test := range []string{"fields-query", "fields-header", "preload-query", "preload-header", "fields-preload-query", "fields-preload-header"} {
@@ -81,11 +89,26 @@ func TestH2Push(t *testing.T) {
 }
 
 func TestH2PushLimit(t *testing.T) {
-	upstream, g, _ := createTestingUtils()
+	upstream, g, _ := createTestingUtils("")
 	g.options.MaxPushes = 2
 	defer upstream.Close()
 
 	cmd := exec.Command("../test-push/push-limit.php")
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GATEWAY_URL="+gatewayURL)
+	stdoutStderr, err := cmd.CombinedOutput()
+	if !assert.NoError(t, err) {
+		t.Log(string(stdoutStderr))
+	}
+
+	g.server.Shutdown(context.Background())
+}
+
+func TestH2PushOpenAPI(t *testing.T) {
+	upstream, g, _ := createTestingUtils("../fixtures/openapi.yaml")
+	defer upstream.Close()
+
+	cmd := exec.Command("../test-push/push-openapi.php")
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "GATEWAY_URL="+gatewayURL)
 	stdoutStderr, err := cmd.CombinedOutput()

@@ -30,13 +30,13 @@ func (h *OpenAPIHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Add("Content-Type", "application/json")
 
 	m := http.NewServeMux()
-	m.HandleFunc("/books.json", func(rw http.ResponseWriter, req *http.Request) {
+	m.HandleFunc("/oa/books.json", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(rw, OABooksContent)
 	})
-	m.HandleFunc("/authors/", func(rw http.ResponseWriter, req *http.Request) {
+	m.HandleFunc("/oa/authors/", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(rw, OAAuthor1Content)
 	})
-	m.HandleFunc("/books/", func(rw http.ResponseWriter, req *http.Request) {
+	m.HandleFunc("/oa/books/", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(rw, `{
 	"id": `+findID.FindString(req.RequestURI)+`,
 	"title": "Book 1",
