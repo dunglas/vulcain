@@ -18,10 +18,10 @@ var jsonRe = regexp.MustCompile(`(?i)\bjson\b`)
 
 // Gateway is the main struct
 type Gateway struct {
-	options       *options
-	server        *http.Server
-	pushers       *pushers
-	openAPIRouter *openapi3filter.Router
+	options *Options
+	server  *http.Server
+	pushers *pushers
+	openAPI *openAPI
 }
 
 func addToVary(r *http.Response, header string) {
@@ -86,21 +86,45 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			tree.importPointers(Fields, query["fields"])
 		}
 
-		var route *openapi3filter.Route
-		newBody := traverseJSON(currentBody, tree, useFieldsHeader || useFieldsQuery, func(u *url.URL, n *node) {
-			if g.openAPIRouter != nil && route == nil {
-				route, _, err = g.openAPIRouter.FindRoute("GET", req.URL)
+		var openAPIroute *openapi3filter.Route
+		openAPIrouteTested := g.openAPI == nil
+		newBody := traverseJSON(currentBody, tree, useFieldsHeader || useFieldsQuery, func(n *node, v string) string {
+			var (
+				u          *url.URL
+				uStr       string
+				useOpenAPI bool
+				newValue   string
+			)
+
+			if !openAPIrouteTested {
+				openAPIroute = g.openAPI.getRoute(req.URL)
+				openAPIrouteTested = true
+			}
+			if openAPIroute != nil {
+				if rel := g.openAPI.getRelation(openAPIroute, n.String(), v); rel != "" {
+					if u, err = parseRelation(n, rel); err != nil {
+						useOpenAPI = true
+					}
+				}
 			}
 
-			if usePreloadQuery || useFieldsQuery {
+			if u == nil {
+				if u, err = parseRelation(n, v); err != nil {
+					return ""
+				}
+			}
+
+			// Never rewrite values when using OpenAPI, use header instead of query parameters
+			if (usePreloadQuery || useFieldsQuery) && !useOpenAPI {
 				urlRewriter(u, n)
+				newValue = u.String()
 			}
 
 			if !usePreloadHeader && !usePreloadQuery {
-				return
+				return newValue
 			}
 
-			uStr := u.String()
+			uStr = u.String()
 			// TODO: allow to disable Server Push from the config
 			if !u.IsAbs() && pusher != nil {
 				pushOptions := &http.PushOptions{Header: req.Header}
@@ -127,12 +151,12 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				err := pusher.Push(uStr, pushOptions)
 				if err == nil {
 					log.WithFields(log.Fields{"relation": uStr}).Debug("Relation pushed")
-					return
+					return newValue
 				}
 				log.WithFields(log.Fields{"relation": uStr, "reason": err.Error()}).Debug("Failed to push")
 				if _, ok := err.(*relationAlreadyPushedError); ok {
 					// Don't add the preload header for something already pushed
-					return
+					return newValue
 				}
 			}
 
@@ -141,6 +165,8 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			// TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
 			r.Header.Add("Link", "<"+uStr+">; rel=preload; as=fetch")
 			log.WithFields(log.Fields{"relation": uStr}).Debug("Link preload header added")
+
+			return newValue
 		})
 
 		if useFieldsHeader {
@@ -220,21 +246,30 @@ func NewGatewayFromEnv() (*Gateway, error) {
 }
 
 // NewGateway creates a Vulcain gateway instance
-<<<<<<< HEAD
-func NewGateway(options *options) *Gateway {
-=======
 func NewGateway(options *Options) *Gateway {
-	var router *openapi3filter.Router
-
+	var o *openAPI
 	if options.OpenAPIFile != "" {
-		router = openapi3filter.NewRouter().WithSwaggerFromFile(options.OpenAPIFile)
+		o = newOpenAPI(options.OpenAPIFile)
 	}
 
->>>>>>> wip
 	return &Gateway{
 		options,
 		nil,
 		&pushers{pusherMap: make(map[string]*waitPusher)},
-		router,
+		o,
 	}
+}
+
+func parseRelation(n *node, r string) (*url.URL, error) {
+	u, err := url.Parse(r)
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"node":     n.String(),
+				"relation": r,
+				"reason":   err,
+			}).Debug("The URL generated using the OpenAPI specification is invalid")
+	}
+
+	return u, err
 }

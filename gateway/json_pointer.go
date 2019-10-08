@@ -8,6 +8,7 @@ type node struct {
 	preload  bool
 	fields   bool
 	path     string
+	parent   *node
 	children []*node
 }
 
@@ -24,13 +25,25 @@ const (
 func (n *node) importPointers(t Type, pointers []string) {
 	for _, pointer := range pointers {
 		pointer = strings.Trim(pointer, "/")
-		if pointer == "" {
-			continue
+		if pointer != "" {
+			partsToTree(t, strings.Split(pointer, "/"), n)
 		}
-
-		parts := strings.Split(pointer, "/")
-		partsToTree(t, parts, n)
 	}
+}
+
+func (n *node) String() string {
+	if n.parent == nil {
+		return "/"
+	}
+
+	s := n.path
+	c := n.parent
+	for c != nil {
+		s = c.path + "/" + s
+		c = c.parent
+	}
+
+	return s
 }
 
 func partsToTree(t Type, parts []string, root *node) {
@@ -49,6 +62,7 @@ func partsToTree(t Type, parts []string, root *node) {
 	if child == nil {
 		child = &node{}
 		child.path = parts[0]
+		child.parent = root
 		root.children = append(root.children, child)
 	}
 

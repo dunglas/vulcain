@@ -24,7 +24,7 @@ func createTestingUtils() (*httptest.Server, *Gateway, http.Client) {
 	upstream := httptest.NewServer(&api.JSONLDHandler{})
 
 	upstreamURL, _ := url.Parse(upstream.URL)
-	g := NewGateway(&options{
+	g := NewGateway(&Options{
 		Addr:      testAddr,
 		MaxPushes: -1,
 		Upstream:  upstreamURL,

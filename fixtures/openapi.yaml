@@ -1,0 +1,87 @@
+openapi: 3.0.0
+info:
+  title: Vulcain demo
+  version: '1.0'
+  description: ''
+paths:
+  /oa/books.json:
+    get:
+      summary: book list
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  member:
+                    type: array
+                    items:
+                      type: integer
+  '/oa/books/{id}':
+    parameters:
+      - schema:
+          type: integer
+        name: id
+        in: path
+        required: true
+    get:
+      summary: book item
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/book'
+          links:
+            author:
+              # TODO: operationRef isn't supported yet
+              #operationRef: '#/paths/~1oa~1authors~1{id}/get'
+              operationId: getAuthor
+              parameters:
+                id: '$response.body#/author'
+  '/oa/authors/{id}':
+    parameters:
+      - type: string
+        name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      operationId: getAuthor
+      summary: author item
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/author'
+components:
+  schemas:
+    author:
+      title: author
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    book:
+      title: book
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        author:
+          type: integer

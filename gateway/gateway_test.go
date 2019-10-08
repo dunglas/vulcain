@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewGateway(t *testing.T) {
-	g := NewGateway(&options{})
+	g := NewGateway(&Options{})
 	assert.NotNil(t, g)
 }
 
@@ -34,7 +34,7 @@ func createServers() (*httptest.Server, *httptest.Server) {
 	upstream := httptest.NewServer(&api.JSONLDHandler{})
 
 	upstreamURL, _ := url.Parse(upstream.URL)
-	g := NewGateway(&options{Upstream: upstreamURL})
+	g := NewGateway(&Options{Upstream: upstreamURL})
 	gateway := httptest.NewServer(g)
 
 	return upstream, gateway
@@ -115,7 +115,7 @@ func TestUpstreamError(t *testing.T) {
 	hook := test.NewGlobal()
 
 	upstreamURL, _ := url.Parse("https://notexist")
-	g := NewGateway(&options{Upstream: upstreamURL})
+	g := NewGateway(&Options{Upstream: upstreamURL})
 	gateway := httptest.NewServer(g)
 	defer gateway.Close()
 

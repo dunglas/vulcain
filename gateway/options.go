@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// Options stores the gateway's options
-type options struct {
+// Options stores the gateway's Options
+type Options struct {
 	Debug               bool
 	Addr                string
 	Upstream            *url.URL
@@ -28,7 +28,7 @@ type options struct {
 
 // NewOptionsFromEnv creates a new option instance from environment
 // It returns an error if mandatory env env vars are missing
-func NewOptionsFromEnv() (*options, error) {
+func NewOptionsFromEnv() (*Options, error) {
 	var err error
 
 	readTimeout, err := parseDurationFromEnvVar("READ_TIMEOUT", time.Duration(0))
@@ -57,7 +57,7 @@ func NewOptionsFromEnv() (*options, error) {
 		}
 	}
 
-	o := &options{
+	o := &Options{
 		os.Getenv("DEBUG") == "1",
 		os.Getenv("ADDR"),
 		upstream,

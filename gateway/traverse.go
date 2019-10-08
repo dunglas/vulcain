@@ -40,16 +40,19 @@ func getBytes(r gjson.Result, body []byte) []byte {
 	return []byte(r.Raw)
 }
 
-func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler func(u *url.URL, n *node)) []byte {
+func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler func(n *node, v string) string) []byte {
 	var (
 		newBody []byte
 		err     error
 	)
 
 	result := gjson.ParseBytes(currentBody)
-	if result.Type == gjson.String {
-		// Maybe a relation
-		return handleRelation(currentBody, tree, relationHandler)
+	switch result.Type {
+	// Maybe a relation
+	case gjson.String:
+		return handleRelation(currentBody, result.String(), tree, relationHandler)
+	case gjson.Number:
+		return handleRelation(currentBody, strconv.FormatInt(result.Int(), 10), tree, relationHandler)
 	}
 
 	filter = filter && tree.hasChildren(Fields)
@@ -78,7 +81,7 @@ func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler f
 				rawBytes := traverseJSON(getBytes(value, currentBody), n, filter, relationHandler)
 				newBody, err = sjson.SetRawBytes(newBody, strconv.Itoa(i), rawBytes)
 				if err != nil {
-					log.WithFields(log.Fields{"path": n.path, "reason": err, "index": i}).Debug("Cannot update array")
+					log.WithFields(log.Fields{"node": n.String(), "reason": err, "index": i}).Debug("Cannot update array")
 				}
 
 				i++
@@ -94,7 +97,7 @@ func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler f
 
 			newBody, err = sjson.SetRawBytes(newBody, path, rawBytes)
 			if err != nil {
-				log.WithFields(log.Fields{"path": n.path, "reason": err}).Debug("Cannot update new document")
+				log.WithFields(log.Fields{"node": n.String(), "reason": err}).Debug("Cannot update new document")
 			}
 		}
 	}
@@ -102,22 +105,11 @@ func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler f
 	return newBody
 }
 
-func handleRelation(currentBody []byte, tree *node, relationHandler func(u *url.URL, n *node)) []byte {
-	result := gjson.ParseBytes(currentBody)
-
-	if result.Type != gjson.String {
-		return currentBody
+func handleRelation(currentBody []byte, rel string, tree *node, relationHandler func(n *node, v string) string) []byte {
+	if newValue := relationHandler(tree, rel); newValue != "" {
+		newBody, _ := json.Marshal(newValue)
+		return newBody
 	}
 
-	uStr := result.String()
-	u, err := url.Parse(uStr)
-	if err != nil {
-		log.WithFields(log.Fields{"path": tree.path, "relation": uStr}).Debug("Invalid relation")
-		return currentBody
-	}
-
-	relationHandler(u, tree)
-
-	newBody, _ := json.Marshal(u.String())
-	return newBody
+	return currentBody
 }
