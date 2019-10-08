@@ -34,161 +34,112 @@ func addToVary(r *http.Response, header string) {
 	r.Header.Set("Vary", v+", "+header)
 }
 
+func extractFromRequest(req *http.Request) (fields, preload []string, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery bool) {
+	query := req.URL.Query()
+	if len(req.Header["Fields"]) > 0 {
+		fields = req.Header["Fields"]
+		fieldsHeader = true
+	} else if len(query["fields"]) > 0 {
+		fields = query["fields"]
+		fieldsQuery = true
+	}
+
+	if len(req.Header["Preload"]) > 0 {
+		preload = req.Header["Preload"]
+		preloadHeader = true
+	} else if len(query["preload"]) > 0 {
+		preload = query["preload"]
+		preloadQuery = true
+	}
+
+	return fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery
+}
+
+func (g *Gateway) cleanupAfterRequest(p *waitPusher, explicitRequestID string, explicitRequest, wait bool) {
+	if p == nil {
+		return
+	}
+
+	if !explicitRequest {
+		p.Done()
+		return
+	}
+
+	if wait {
+		// Wait for subrequests to finish
+		p.Wait()
+	}
+	g.pushers.remove(explicitRequestID)
+}
+
+func (g *Gateway) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, routeTested bool) *openapi3filter.Route {
+	if routeTested || g.openAPI == nil {
+		return nil
+	}
+
+	return g.openAPI.getRoute(url)
+}
+
 func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	pusher, explicitRequest, explicitRequestID := g.getPusher(rw, req)
 
 	rp := httputil.NewSingleHostReverseProxy(g.options.Upstream)
-	rp.ModifyResponse = func(r *http.Response) error {
-		query := req.URL.Query()
-		var useFieldsHeader, useFieldsQuery, usePreloadHeader, usePreloadQuery bool
-
-		if len(req.Header["Fields"]) > 0 {
-			useFieldsHeader = true
-		} else if len(query["fields"]) > 0 {
-			useFieldsQuery = true
-		}
-
-		if len(req.Header["Preload"]) > 0 {
-			usePreloadHeader = true
-		} else if len(query["preload"]) > 0 {
-			usePreloadQuery = true
-		}
-
-		if (!useFieldsHeader && !useFieldsQuery && !usePreloadHeader && !usePreloadQuery) || !jsonRe.MatchString(r.Header.Get("Content-Type")) {
+	rp.ModifyResponse = func(resp *http.Response) error {
+		fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
+		if (len(fields) == 0 && len(preload) == 0) || !jsonRe.MatchString(resp.Header.Get("Content-Type")) {
 			// No Vulcain hints, or not JSON: don't modify the response
-			if pusher != nil {
-				if explicitRequest {
-					g.pushers.remove(explicitRequestID)
-				} else {
-					pusher.Done()
-				}
-			}
-
+			g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, false)
 			return nil
 		}
 
-		currentBody, err := ioutil.ReadAll(r.Body)
+		currentBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
 
 		tree := &node{}
-		if usePreloadHeader {
-			tree.importPointers(Preload, req.Header["Preload"])
-		}
-		if usePreloadQuery {
-			tree.importPointers(Preload, query["preload"])
-		}
-		if useFieldsHeader {
-			tree.importPointers(Fields, req.Header["Fields"])
-		}
-		if useFieldsQuery {
-			tree.importPointers(Fields, query["fields"])
-		}
+		tree.importPointers(Preload, preload)
+		tree.importPointers(Fields, fields)
 
 		var openAPIroute *openapi3filter.Route
 		openAPIrouteTested := g.openAPI == nil
-		newBody := traverseJSON(currentBody, tree, useFieldsHeader || useFieldsQuery, func(n *node, v string) string {
+		newBody := traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, v string) string {
 			var (
 				u          *url.URL
-				uStr       string
 				useOpenAPI bool
 				newValue   string
 			)
 
-			if !openAPIrouteTested {
-				openAPIroute = g.openAPI.getRoute(req.URL)
-				openAPIrouteTested = true
-			}
-			if openAPIroute != nil {
-				if rel := g.openAPI.getRelation(openAPIroute, n.String(), v); rel != "" {
-					if u, err = parseRelation(n, rel); err != nil {
-						useOpenAPI = true
-					}
-				}
-			}
-
-			if u == nil {
-				if u, err = parseRelation(n, v); err != nil {
-					return ""
-				}
+			openAPIroute, openAPIrouteTested = g.getOpenAPIRoute(req.URL, openAPIroute, openAPIrouteTested), true
+			if u, useOpenAPI, err = g.parseRelation(n.String(), v, openAPIroute); err != nil {
+				return ""
 			}
 
 			// Never rewrite values when using OpenAPI, use header instead of query parameters
-			if (usePreloadQuery || useFieldsQuery) && !useOpenAPI {
+			if (preloadQuery || fieldsQuery) && !useOpenAPI {
 				urlRewriter(u, n)
 				newValue = u.String()
 			}
 
-			if !usePreloadHeader && !usePreloadQuery {
-				return newValue
+			if len(preload) > 0 {
+				g.push(u, pusher, req, resp, n, preloadHeader, fieldsHeader)
 			}
-
-			uStr = u.String()
-			// TODO: allow to disable Server Push from the config
-			if !u.IsAbs() && pusher != nil {
-				pushOptions := &http.PushOptions{Header: req.Header}
-				pushOptions.Header.Del("Preload")
-				pushOptions.Header.Del("Fields")
-				pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
-
-				if usePreloadHeader {
-					for _, pp := range n.strings(Preload, "") {
-						if pp != "/" {
-							pushOptions.Header.Add("Preload", pp)
-						}
-					}
-				}
-				if useFieldsHeader {
-					for _, fp := range n.strings(Fields, "") {
-						if fp != "/" {
-							pushOptions.Header.Add("Fields", fp)
-						}
-					}
-				}
-
-				// HTTP/2, and relative relation, push!
-				err := pusher.Push(uStr, pushOptions)
-				if err == nil {
-					log.WithFields(log.Fields{"relation": uStr}).Debug("Relation pushed")
-					return newValue
-				}
-				log.WithFields(log.Fields{"relation": uStr, "reason": err.Error()}).Debug("Failed to push")
-				if _, ok := err.(*relationAlreadyPushedError); ok {
-					// Don't add the preload header for something already pushed
-					return newValue
-				}
-			}
-
-			// Use preload Link headers as fallback (https://www.w3.org/TR/preload/)
-			// TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
-			// TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
-			r.Header.Add("Link", "<"+uStr+">; rel=preload; as=fetch")
-			log.WithFields(log.Fields{"relation": uStr}).Debug("Link preload header added")
 
 			return newValue
 		})
 
-		if useFieldsHeader {
-			addToVary(r, "Fields")
+		if fieldsHeader {
+			addToVary(resp, "Fields")
 		}
-		if usePreloadHeader {
-			addToVary(r, "Preload")
+		if preloadHeader {
+			addToVary(resp, "Preload")
 		}
 
-		if pusher != nil {
-			if explicitRequest {
-				pusher.Wait()
-				g.pushers.remove(explicitRequestID)
-			} else {
-				// Relations pushed
-				pusher.Done()
-			}
-		}
+		g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, true)
 
 		newBodyBuffer := bytes.NewBuffer(newBody)
-		r.Body = ioutil.NopCloser(newBodyBuffer)
-		r.Header["Content-Length"] = []string{fmt.Sprint(newBodyBuffer.Len())}
+		resp.Body = ioutil.NopCloser(newBodyBuffer)
+		resp.Header["Content-Length"] = []string{fmt.Sprint(newBodyBuffer.Len())}
 
 		return nil
 	}
@@ -202,6 +153,56 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 	rp.ServeHTTP(rw, req)
+}
+
+// addPreloadHeader sets preload Link headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/)
+func addPreloadHeader(resp *http.Response, link string) {
+	resp.Header.Add("Link", "<"+link+">; rel=preload; as=fetch")
+	log.WithFields(log.Fields{"relation": link}).Debug("Link preload header added")
+}
+
+// TODO: allow to disable Server Push from the config
+// TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
+// TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
+func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *http.Response, n *node, preloadHeader, fieldsHeader bool) {
+	url := u.String()
+	if pusher == nil || u.IsAbs() {
+		addPreloadHeader(resp, url)
+		return
+	}
+
+	pushOptions := &http.PushOptions{Header: req.Header}
+	pushOptions.Header.Del("Preload")
+	pushOptions.Header.Del("Fields")
+	pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
+
+	if preloadHeader {
+		for _, pp := range n.strings(Preload, "") {
+			if pp != "/" {
+				pushOptions.Header.Add("Preload", pp)
+			}
+		}
+	}
+	if fieldsHeader {
+		for _, fp := range n.strings(Fields, "") {
+			if fp != "/" {
+				pushOptions.Header.Add("Fields", fp)
+			}
+		}
+	}
+
+	// HTTP/2, and relative relation, push!
+	if err := pusher.Push(url, pushOptions); err != nil {
+		// Don't add the preload header for something already pushed
+		if _, ok := err.(*relationAlreadyPushedError); !ok {
+			log.WithFields(log.Fields{"relation": url, "reason": err.Error()}).Debug("Failed to push")
+		}
+
+		addPreloadHeader(resp, url)
+		return
+	}
+
+	log.WithFields(log.Fields{"relation": url}).Debug("Relation pushed")
 }
 
 func (g *Gateway) getPusher(rw http.ResponseWriter, req *http.Request) (p *waitPusher, explicitRequest bool, explicitRequestID string) {
@@ -260,16 +261,26 @@ func NewGateway(options *Options) *Gateway {
 	}
 }
 
-func parseRelation(n *node, r string) (*url.URL, error) {
-	u, err := url.Parse(r)
-	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"node":     n.String(),
-				"relation": r,
-				"reason":   err,
-			}).Debug("The URL generated using the OpenAPI specification is invalid")
+func (g *Gateway) parseRelation(selector, rel string, route *openapi3filter.Route) (*url.URL, bool, error) {
+	var useOpenAPI bool
+	if route != nil {
+		if orel := g.openAPI.getRelation(route, selector, rel); orel != "" {
+			rel = orel
+			useOpenAPI = true
+		}
 	}
 
-	return u, err
+	u, err := url.Parse(rel)
+	if err == nil {
+		return u, useOpenAPI, nil
+	}
+
+	log.WithFields(
+		log.Fields{
+			"node":     selector,
+			"relation": rel,
+			"reason":   err,
+		}).Debug("The URL generated using the OpenAPI specification is invalid")
+
+	return nil, false, err
 }
