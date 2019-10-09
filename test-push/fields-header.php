@@ -6,7 +6,7 @@ require __DIR__ . '/tester.php';
 use \Symfony\Contracts\HttpClient\ResponseInterface;
 
 assertRequests([
-    ['/books.jsonld', ['headers' => ['Fields' => '/hydra:member/*/author']], function (ResponseInterface $response) {
+    ['/books.jsonld', ['headers' => ['Fields' => '/hydra:member/*/author', 'Vulcain-Explicit-Request' => 'attack']], function (ResponseInterface $response) {
         $expectedContent = '{"hydra:member":["/books/1.jsonld","/books/2.jsonld"]}';
         $content = $response->getContent();
         if ($expectedContent !== $content) {

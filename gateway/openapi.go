@@ -60,7 +60,7 @@ func (o *openAPI) getRelation(r *openapi3filter.Route, selector, value string) s
 
 func (o *openAPI) generateLinkForResponse(response *openapi3.Response, selector, value string) string {
 	for _, linkRef := range response.Links {
-		if linkRef.Value == nil {
+		if linkRef == nil || linkRef.Value == nil {
 			continue
 		}
 

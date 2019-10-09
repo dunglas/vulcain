@@ -139,3 +139,29 @@ func TestParseRelation(t *testing.T) {
 	u, _, _ = g.parseRelation("/invalid", " http://foo.com", nil)
 	assert.Nil(t, u)
 }
+
+func TestCanParse(t *testing.T) {
+	r := &http.Response{Header: http.Header{"Content-Type": []string{"text/xml"}}}
+	assert.False(t, canParse(r, []string{"foo"}, []string{}))
+
+	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/json"}}}
+	assert.False(t, canParse(r, []string{}, []string{}))
+
+	r = &http.Response{Header: http.Header{
+		"Content-Type": []string{"application/json"},
+		"Prefer":       []string{"selector=css"},
+	}}
+	assert.False(t, canParse(r, []string{"foo"}, []string{}))
+
+	r = &http.Response{Header: http.Header{
+		"Content-Type": []string{"application/json"},
+		"Prefer":       []string{"selector=json-pointer"},
+	}}
+	assert.True(t, canParse(r, []string{"foo"}, []string{}))
+
+	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/ld+json"}}}
+	assert.True(t, canParse(r, []string{"foo"}, []string{}))
+
+	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/ld+json"}}}
+	assert.True(t, canParse(r, []string{"foo"}, []string{}))
+}

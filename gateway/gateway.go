@@ -14,7 +14,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var jsonRe = regexp.MustCompile(`(?i)\bjson\b`)
+var (
+	jsonRe   = regexp.MustCompile(`(?i)\bjson\b`)
+	preferRe = regexp.MustCompile(`\s*selector="?json-pointer"?`)
+)
 
 // Gateway is the main struct
 type Gateway struct {
@@ -80,14 +83,33 @@ func (g *Gateway) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, rou
 	return g.openAPI.getRoute(url)
 }
 
+func canParse(resp *http.Response, fields, preload []string) bool {
+	if (len(fields) == 0 && len(preload) == 0) || !jsonRe.MatchString(resp.Header.Get("Content-Type")) {
+		// No Vulcain hints, or not JSON: don't modify the response
+		return false
+	}
+
+	prefers, ok := resp.Header["Prefer"]
+	if !ok {
+		return true
+	}
+
+	for _, p := range prefers {
+		if preferRe.MatchString(p) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	pusher, explicitRequest, explicitRequestID := g.getPusher(rw, req)
 
 	rp := httputil.NewSingleHostReverseProxy(g.options.Upstream)
 	rp.ModifyResponse = func(resp *http.Response) error {
 		fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
-		if (len(fields) == 0 && len(preload) == 0) || !jsonRe.MatchString(resp.Header.Get("Content-Type")) {
-			// No Vulcain hints, or not JSON: don't modify the response
+		if !canParse(resp, fields, preload) {
 			g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, false)
 			return nil
 		}
