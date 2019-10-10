@@ -26,6 +26,32 @@ To run the test suite:
 
     $ go test -v -timeout 30s github.com/dunglas/vulcain/gateway
 
+### curl Examples
+
+Preload all relations referenced in the `hydra:member`, then in the author relationship, but only include the title and the author of these relations:
+
+```
+curl https://localhost:3000/books.jsonld \
+    --get \
+    --data 'preload=/hydra:member/*/author' \
+    --data 'fields=/hydra:member/*/author' \
+    --data 'fields=/hydra:member/*/title' \
+    --verbose \
+    --insecure 
+```
+
+Using headers:
+
+```
+curl https://localhost:3000/books.jsonld \
+    --get \
+    --header 'Preload: /hydra:member/*/author' \
+    --header 'Fields: /hydra:member/*/author' \
+    --header 'Fields: /hydra:member/*/title' \
+    --verbose \
+    --insecure 
+```
+
 ## Protocol
 
 The protocol is written in Markdown, compatible with [Mmark](https://mmark.nl/).
