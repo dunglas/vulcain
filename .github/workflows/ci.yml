@@ -90,6 +90,6 @@ jobs:
       - name: Test
         run: go test -v -timeout 30s -coverprofile=cover.out github.com/dunglas/vulcain/gateway
       - name: Upload coverage results
-        uses: codecov/codecov-action@v1.0.2
+        uses: teohhanhui/codecov-action@master
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
