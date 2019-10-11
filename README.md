@@ -1,5 +1,4 @@
-# Vulcain: Grab What You Need... Burn The REST!
-*Protocol and Open Source Gateway*
+# Vulcain
 
 Vulcain is a brand new protocol using HTTP/2 Server Push to create fast and idiomatic **client-driven REST** APIs.
 
@@ -13,6 +12,8 @@ It supports [hypermedia APIs](https://restfulapi.net/hateoas/) but also any "leg
 [![Go Report Card](https://goreportcard.com/badge/github.com/dunglas/vulcain)](https://goreportcard.com/report/github.com/dunglas/vulcain)
 
 ![Vulcain Schema](schemas/preload+fields-header.png)
+
+Grab What You Need... Burn The REST!
 
 * [Introduction](#introduction)
   * [Pushing Relations](#pushing-relations)
