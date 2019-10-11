@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    # branches:
+    #   - master
+    #   - '[0-9]*.[0-9]*'
+    #   - '[0-9]*.x'
+    # tags:
+    #   - 'v[0-9]*.[0-9]*'
+  pull_request:
+
+env:
+  CGO_ENABLED: '0' # https://github.com/golang/go/issues/26988
+  GO111MODULE: 'on'
+
+jobs:
+  vet:
+    name: Vet (Go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    container:
+      image: golang:${{ matrix.go }}-alpine
+    strategy:
+      # https://github.community/t5/GitHub-Actions/GitHub-Actions-Matrix-options-dont-work-as-documented/m-p/29558
+      matrix:
+        go:
+          - '1.13'
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install system packages
+        run: |
+          apk add \
+            git \
+      - name: Install project dependencies
+        run: go get
+      - name: Vet
+        run: go vet
+
+  format:
+    name: Format (Go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    container:
+      image: golang:${{ matrix.go }}-alpine
+    strategy:
+      # https://github.community/t5/GitHub-Actions/GitHub-Actions-Matrix-options-dont-work-as-documented/m-p/29558
+      matrix:
+        go:
+          - '1.13'
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install system packages
+        run: |
+          apk add \
+            git \
+      - name: Install project dependencies
+        run: go get
+      - name: Format
+        run: gofmt -e -d *.go
+
+  test:
+    name: Test (Go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    container:
+      image: golang:${{ matrix.go }}-alpine
+    strategy:
+      # https://github.community/t5/GitHub-Actions/GitHub-Actions-Matrix-options-dont-work-as-documented/m-p/29558
+      matrix:
+        go:
+          - '1.12'
+          - '1.13'
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install system packages
+        run: |
+          apk add \
+            git \
+      - name: Install project dependencies
+        run: go get
+      - name: Build
+        run: go build
+      - name: Test
+        run: go test
