@@ -7,7 +7,7 @@ An open source gateway server which you can put on top of **any existing web API
 It supports [hypermedia APIs](https://restfulapi.net/hateoas/) but also any "legacy" API by documenting its relations [using OpenAPI](docs/gateway/openapi.md).
 
 [![GoDoc](https://godoc.org/github.com/dunglas/vulcain?status.svg)](https://godoc.org/github.com/dunglas/vulcain/gateway)
-[![Build Status](https://travis-ci.com/dunglas/vulcain.svg?branch=master)](https://travis-ci.com/dunglas/vulcain)
+[![Build Status](https://github.com/dunglas/vulcain/workflows/CI/badge.svg)](https://github.com/dunglas/vulcain/actions)
 [![Coverage Status](https://coveralls.io/repos/github/dunglas/vulcain/badge.svg?branch=master)](https://coveralls.io/github/dunglas/vulcain?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dunglas/vulcain)](https://goreportcard.com/report/github.com/dunglas/vulcain)
 
