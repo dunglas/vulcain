@@ -1,6 +1,6 @@
 # Contributing
 
-## Gateway
+## Start a Demo API and Contribute to the Gateway Server
 
 Clone the project:
 
@@ -20,7 +20,10 @@ Run the fixture API:
     $ cd fixtures
     $ go run main.go
 
-Go to `https://localhost:3000` and enjoy!
+Go to `https://localhost:3000` and accept the self-signed certificate.
+Go on `http://localhost:8081` and enjoy!
+
+An API using an OpenAPI mapping is available on `https://localhost:3000/oa/books.json`.
 
 To run the test suite:
 

@@ -22,6 +22,8 @@ It supports [hypermedia APIs](https://restfulapi.net/hateoas/) but also any "leg
   * [Configuration](docs/gateway/config.md)
   * [Mapping a Non-Hypermedia API using OpenAPI](docs/gateway/openapi.md)
 * [Comparison with GraphQL and Other API Formats](docs/graphql.md)
+* [Using GraphQL as Query Language for Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain)
+* [Demo API](CONTRIBUTING.md)
 * [Cache Considerations](docs/cache.md)
 * [Formal Specification](spec/vulcain.md)
 * [Getting Help](docs/help.md)
@@ -105,15 +107,16 @@ const authorResp = await fetch(bookJSON.author);
 // ...
 ```
 
-[Full example, including collections](fixtures/api/static/main.js), see also [use GraphQL as query language for Vulcain](docs/graphql.md).
+[Full example, including collections](fixtures/api/static/main.js), see also [use GraphQL as query language for Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain).
 
 Thanks to [HTTP/2 multiplexing](https://stackoverflow.com/a/36519379/1352334), pushed responses will be sent in parallel.
 
 When the client will follow the links and issue a new HTTP request (for instance using `fetch()`), the corresponding response will already by in cache, and will be used instantly!
 
-[More than 90% of users](https://caniuse.com/#feat=http2) have devices supporting HTTP/2. However, for the remaining 10%, and for cases where using HTTP/2 Server Push isn't allowed such as when resources are [served by different authorities](https://tools.ietf.org/html/rfc7540#section-10.1), Vulcain allows to gracefully fallback to [`preload` links](https://www.w3.org/TR/preload/), which can be used together with [the 103 status code](https://tools.ietf.org/html/rfc8297).
-
 For non-hypermedia APIs (when the identifier of the related resource is a simple string or int), [use an OpenAPI specification to configure links between resources](docs/gateway/openapi.md).
+Tip: the easiest way to create a hypermedia API is to use [the API Platform framework](https://api-platform.com) (by the same author than Vulcain).
+
+[More than 90% of users](https://caniuse.com/#feat=http2) have devices supporting HTTP/2. However, for the remaining 10%, and for cases where using HTTP/2 Server Push isn't allowed such as when resources are [served by different authorities](https://tools.ietf.org/html/rfc7540#section-10.1), Vulcain allows to gracefully fallback to [`preload` links](https://www.w3.org/TR/preload/), which can be used together with [the 103 status code](https://tools.ietf.org/html/rfc8297).
 
 ### Query Parameter
 
@@ -186,7 +189,7 @@ Alternatively to HTTP headers, the `fields` query parameter can be used to filte
 
 * [Mapping a non-hypermedia API using OpenAPI](docs/gateway/openapi.md)
 * [Cache considerations](docs/cache.md)
-* [Using GraphQL with Vulcain](docs/graphql.md)
+* [Using GraphQL with Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain)
 * [Using other selectors such as XPath and CSS selectors for non-JSON documents](spec/vulcain.md#selectors) (only JSON Pointer [is currently supported](https://github.com/dunglas/vulcain/issues/3) by the Gateway Server)
 
 ## Credits
