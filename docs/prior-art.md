@@ -1,9 +1,11 @@
 # Prior Art
 
-* [GraphQL](graphql.md)
-* [JSON:API](https://jsonapi.org/)
-* [Hades](https://github.com/gabesullice/hades)
-* [Prefer-Push I-D](https://tools.ietf.org/html/draft-pot-prefer-push)
-* [Transclude Preference I-D](https://inadarei.github.io/draft-prefer-transclude)
+Vulcain has been inspired by many other related work including:
 
-TODO: compare Vulcain with these protocols
+* [JSON:API](https://jsonapi.org/)
+* [GraphQL](graphql.md)
+* [Hades](https://github.com/gabesullice/hades)
+* [Prefer-Push](https://tools.ietf.org/html/draft-pot-prefer-push)
+* [Transclude Preference](https://inadarei.github.io/draft-prefer-transclude)
+
+Thanks to all the great people who created of these protocols, formats and tools!

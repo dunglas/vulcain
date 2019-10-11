@@ -210,6 +210,7 @@ The client can use the `Prefer` HTTP header [@!RFC7240] with the `selector` pref
 
 ~~~ http
 GET /books/1 HTTP/2
+Accept: text/xml
 Prefer: selector=css
 Fields: brand > name
 ~~~
@@ -253,6 +254,8 @@ The `/books/*/author` JSON Pointer selects the `author` field of every objects i
 
 The `*` character is escaped by encoding it as the `~2` character sequence.
 
+By design, this selector is simple and limited. Simple selectors make it easier to limit the complexity of requests executed by the server.
+
 # Query Parameters
 
 Another option available to clients is to utilize Request URI query-string parameters to pass preload and fields selectors. The `preload` and `query` parameters `MAY` be used to pass selectors corresponding respectively to the `Preload` and `Fields` HTTP headers. To pass multiple selectors, parameters can be passed multiple times.
@@ -281,7 +284,7 @@ As altering the URI can have undesirable effects, using HTTP headers `SHOULD` be
 While using hypermedia capabilities of the HTTP protocol through Web Linking `SHOULD` always be preferred, sometimes links between resources are known by the server but are not provided in the HTTP response.
 
 In such cases, the server can compute the link server-side in order to push the related resource.
-Such server-side computed links `MAY` be documented, for instance by providing an [OpenAPI specification](https://www.openapis.org/). containing [Link objects](http://spec.openapis.org/oas/v3.0.2#link-object).
+Such server-side computed links `MAY` be documented, for instance by providing an [OpenAPI specification](https://www.openapis.org/) containing [Link objects](http://spec.openapis.org/oas/v3.0.2#link-object).
 
 Considering the following resources and assuming that the server knows that the `author` field references the resources `/authors/{id}` resource:
 
