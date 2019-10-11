@@ -9,10 +9,15 @@ services:
   - docker
 
 before_install:
+  - sudo add-apt-repository ppa:ondrej/php -y
+  - sudo apt-get update -q
+  - sudo apt-get install php7.3 php7.3-cli php7.3-json php7.3-zip php7.3-curl
+  - wget https://raw.githubusercontent.com/composer/getcomposer.org/76a7060ccb93902cd7576b67264ad91c8a2700e2/web/installer -O - -q | php -- --quiet
   - GO111MODULE=off go get github.com/mattn/goveralls
 
 install:
   - go get
+  - cd test-push && php ../composer.phar install && cd -
 
 script:
   - go vet
