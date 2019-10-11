@@ -8,7 +8,7 @@ It supports [hypermedia APIs](https://restfulapi.net/hateoas/) but also any "leg
 
 [![GoDoc](https://godoc.org/github.com/dunglas/vulcain?status.svg)](https://godoc.org/github.com/dunglas/vulcain/gateway)
 [![Build Status](https://github.com/dunglas/vulcain/workflows/CI/badge.svg)](https://github.com/dunglas/vulcain/actions)
-[![Coverage Status](https://coveralls.io/repos/github/dunglas/vulcain/badge.svg?branch=master)](https://coveralls.io/github/dunglas/vulcain?branch=master)
+[![codecov](https://codecov.io/gh/dunglas/vulcain/branch/master/graph/badge.svg)](https://codecov.io/gh/dunglas/vulcain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dunglas/vulcain)](https://goreportcard.com/report/github.com/dunglas/vulcain)
 
 ![Vulcain Schema](schemas/preload+fields-header.png)
