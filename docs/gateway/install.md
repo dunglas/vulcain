@@ -9,7 +9,7 @@ Tip: the easiest way to create a hypermedia API is to use [the API Platform fram
 
 ## Prebuilt Binary
 
-First, download the archive corresponding to your operating system and architecture [from the release page](https://github.com/dunglas/dunglas/releases), extract the archive and open a shell in the resulting directory.
+First, download the archive corresponding to your operating system and architecture [from the release page](https://github.com/dunglas/vulcain/releases), extract the archive and open a shell in the resulting directory.
 
 Note: Mac OS users must use the `Darwin` binary.
 
