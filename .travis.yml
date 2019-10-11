@@ -1,0 +1,31 @@
+language: go
+go:
+  - '1.13'
+
+env:
+  - GO111MODULE=on
+
+services:
+  - docker
+
+before_install:
+  - GO111MODULE=off go get github.com/mattn/goveralls
+
+install:
+  - go get
+
+script:
+  - go vet
+  - gofmt -e -d *.go
+  - go build
+  - $GOPATH/bin/goveralls -race -service=travis-ci
+after_success:
+  - test -n "$TRAVIS_TAG" && docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+
+deploy:
+- provider: script
+  skip_cleanup: true
+  script: curl -sL https://git.io/goreleaser | bash
+  on:
+    tags: true
+    condition: $TRAVIS_OS_NAME = linux
