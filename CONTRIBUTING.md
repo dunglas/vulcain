@@ -54,7 +54,7 @@ curl https://localhost:3000/books.jsonld \
 
 ## Protocol
 
-The protocol is written in Markdown, compatible with [Mmark](https://mmark.nl/).
+The protocol is written in Markdown, compatible with [Mmark](https://mmark.miek.nl/).
 It is then converted in the [the "xml2rfc" Version 3 Vocabulary](https://tools.ietf.org/html/rfc7991).
 
 To contribute to the protocol itself:
