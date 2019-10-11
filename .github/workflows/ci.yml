@@ -61,7 +61,6 @@ jobs:
     strategy:
       matrix:
         go:
-          - '1.12'
           - '1.13'
       fail-fast: false
     steps:
