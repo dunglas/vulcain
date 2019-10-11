@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CGO_ENABLED: '0' # https://github.com/golang/go/issues/26988
+  GO111MODULE: 'on'
+
+jobs:
+  vet:
+    name: Vet (Go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    container:
+      image: golang:${{ matrix.go }}-alpine
+    strategy:
+      matrix:
+        go:
+          - '1.13'
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install system packages
+        run: |
+          apk add \
+            git \
+      - name: Install project dependencies
+        run: go get
+      - name: Vet
+        run: go vet
+
+  format:
+    name: Format (Go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    container:
+      image: golang:${{ matrix.go }}-alpine
+    strategy:
+      matrix:
+        go:
+          - '1.13'
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install system packages
+        run: |
+          apk add \
+            git \
+      - name: Install project dependencies
+        run: go get
+      - name: Format
+        run: gofmt -e -d *.go
+
+  test:
+    name: Test (Go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    container:
+      image: golang:${{ matrix.go }}-alpine
+    strategy:
+      matrix:
+        go:
+          - '1.12'
+          - '1.13'
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install system packages
+        run: |
+          apk add \
+            git \
+            php7 \
+            php7-curl \
+            php7-iconv \
+            php7-json \
+            php7-mbstring \
+            php7-openssl \
+            php7-phar \
+            php7-zip \
+      - name: Install project dependencies
+        run: go get
+      - name: Build
+        run: go build
+      - name: Install test dependencies
+        run: |
+          wget -qO - https://raw.githubusercontent.com/composer/getcomposer.org/fb22b78362d31c0d2bf516d1f8cdfd2745caa431/web/installer | php -- --install-dir=/usr/local/bin --filename=composer --quiet
+          composer install --no-progress --no-suggest --ansi
+        working-directory: test-push
+      - name: Test
+        run: go test -v -timeout 30s -coverprofile=cover.out github.com/dunglas/vulcain/gateway
+      - name: Upload coverage results
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

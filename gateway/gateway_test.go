@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/dunglas/vulcain/fixtures/api"
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -112,9 +111,7 @@ func TestPreloadHeader(t *testing.T) {
 }
 
 func TestUpstreamError(t *testing.T) {
-	hook := test.NewGlobal()
-
-	upstreamURL, _ := url.Parse("https://notexist")
+	upstreamURL, _ := url.Parse("https://test.invalid")
 	g := NewGateway(&Options{Upstream: upstreamURL})
 	gateway := httptest.NewServer(g)
 	defer gateway.Close()
@@ -125,7 +122,6 @@ func TestUpstreamError(t *testing.T) {
 	resp, _ := client.Do(req)
 
 	assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
-	assert.Equal(t, "http: proxy error: dial tcp: lookup notexist: no such host", hook.LastEntry().Message)
 }
 
 func TestParseRelation(t *testing.T) {
