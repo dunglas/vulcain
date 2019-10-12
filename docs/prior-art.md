@@ -8,4 +8,4 @@ Vulcain has been inspired by many other related work including:
 * [Prefer-Push](https://tools.ietf.org/html/draft-pot-prefer-push)
 * [Transclude Preference](https://inadarei.github.io/draft-prefer-transclude)
 
-Thanks to all the great people who created of these protocols, formats and tools!
+Thanks to all the great people who created these protocols, formats and tools!
