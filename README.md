@@ -112,7 +112,7 @@ const authorResp = await fetch(bookJSON.author);
 
 Thanks to [HTTP/2 multiplexing](https://stackoverflow.com/a/36519379/1352334), pushed responses will be sent in parallel.
 
-When the client will follow the links and issue a new HTTP request (for instance using `fetch()`), the corresponding response will already by in cache, and will be used instantly!
+When the client will follow the links and issue a new HTTP request (for instance using `fetch()`), the corresponding response will already be in cache, and will be used instantly!
 
 For non-hypermedia APIs (when the identifier of the related resource is a simple string or int), [use an OpenAPI specification to configure links between resources](docs/gateway/openapi.md).
 Tip: the easiest way to create a hypermedia API is to use [the API Platform framework](https://api-platform.com) (by the same author than Vulcain).
