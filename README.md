@@ -167,7 +167,7 @@ A Vulcain server will return a response containing the following JSON document:
 
 ```json
 {
-    "type": "novel",
+    "genre": "novel",
     "author": "/authors/1"
 }
 ```
