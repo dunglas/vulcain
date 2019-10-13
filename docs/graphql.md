@@ -4,11 +4,11 @@ Several API formats and architecture including [GraphQL](https://graphql.org/), 
 
 By using HTTP/2 Server Push, Vulcain fixes most problems caused by compound documents and sparse fieldsets based formats such as GraphQL and JSON:API:
 
-* Because each pushed resource is sent in a separate HTTP/2 stream (HTTP/2 multiplexing), related resources can be sent in parallel to the client thanks
-* While embedding resources is a forced push (the client receive the full JSON documents, even if it already has some parts of it), HTTP/2 Server Push allows the client [to cancel the push of resources it already has](cache.md), saving bandwidth and improving performance
-* Consequently, clients and network intermediates (such as [Varnish cache](cache.md)), can store each resource in a specific cache, while resource embedding only allows to have the full big JSON document in cache, [cache invalidation](https://en.wikipedia.org/wiki/Cache_invalidation) is then more efficient with Vulcain, and can be done at the HTTP level
+* Because each pushed resource is sent in a separate HTTP/2 stream (HTTP/2 multiplexing), related resources can be sent in parallel to the client.
+* While embedding resources is a forced push (the client receive the full JSON documents, even if it already has some parts of it), HTTP/2 Server Push allows the client [to cancel the push of resources it already has](cache.md), saving bandwidth and improving performance.
+* Consequently, clients and network intermediates (such as [Varnish cache](cache.md)), can store each resource in a specific cache, while resource embedding only allows to have the full big JSON document in cache, [cache invalidation](https://en.wikipedia.org/wiki/Cache_invalidation) is then more efficient with Vulcain, and can be done at the HTTP level.
 
-Specifically with GraphQL, using cache mechanisms provided by the HTTP protocol isn't easy (`POST` request cannot be cached)
+Specifically with GraphQL, using cache mechanisms provided by the HTTP protocol isn't easy (`POST` requests cannot be cached).
 
 ## Using GraphQL as Query Language for Vulcain
 
@@ -22,11 +22,11 @@ Thanks to `apollo-link-rest` you can write your request in GraphQL, use all [the
 
 This approach also fixes [all the problems coming with using GraphQL server-side](https://dunglas.fr/2018/03/symfonylive-paris-slides-rest-vs-graphql-illustrated-examples-with-the-api-platform-framework/)!
 
-Note: a higer-level library dedicated to Vulcain is being written.
+Note: a higher-level library dedicated to Vulcain is being written.
 
 ## Type System and Introspection
 
-Vulcains focuses on solving the under-fetching and the over-fetching problems. It's out of Vulcain's scope to provide a type system and an introspection mechanism.
+Vulcain focuses on solving the under-fetching and the over-fetching problems. It's out of Vulcain's scope to provide a type system and an introspection mechanism.
 However, Vulcain has been designed to play very well with existing formats providing these capabilities.
 
 For hypermedia APIs, we strongly recommend to use [W3C's JSON-LD](https://json-ld.org/spec/latest/json-ld-api-best-practices/) along with [the Hydra Core Vocabulary](http://www.hydra-cg.com/). For less advanced non-hypermedia APIs, we recommend [OpenAPI](https://www.openapis.org/) (formerly known as Swagger).
