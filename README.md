@@ -193,6 +193,21 @@ Alternatively to HTTP headers, the `fields` query parameter can be used to filte
 * [Using GraphQL with Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain)
 * [Using other selectors such as XPath and CSS selectors for non-JSON documents](spec/vulcain.md#selectors) (only JSON Pointer [is currently supported](https://github.com/dunglas/vulcain/issues/3) by the Gateway Server)
 
+## License and Copyright 
+
+tl;dr:
+
+* proprietary software **can** implement the Vulcain specification
+* proprietary software **can** be used behind the Vulcain Gateway Server without having to share their sources
+* modifications made to the Vulcain Gateway Server **must** be shared
+* alternatively, a commercial license is available for the Vulcain Gateway Server
+
+[The specification](spec/vulcain.md) is available under [the IETF copyright policy](https://trustee.ietf.org/copyright-faq.html). The Vulcain **specification** can be implemented by any software, including proprietary software.
+
+The Vulcain Gateway Server is licensed under [AGPL-3.0](LICENSE). This license implies that if you modify the Vulcain Gateway Server, you must share those modifications. However, the AGPL-3.0 license applies only to the gateway server itself, **not to software used behind the gateway**.
+
+For companies not wanting, or not able to use AGPL-3.0 licensed software, commercial licenses are also available. [Contact us for more information](dunglas+vulcain@gmail.com).
+
 ## Credits
 
 Created by [Kévin Dunglas](https://dunglas.fr). Sponsored by [Les-Tilleuls.coop](https://les-tilleuls.coop).
