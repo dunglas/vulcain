@@ -124,8 +124,8 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		tree.importPointers(Fields, fields)
 
 		var (
-			oaRoute       *openapi3filter.Route
-			oaRouteTested bool
+			oaRoute                         *openapi3filter.Route
+			oaRouteTested, addPreloadToVary bool
 		)
 		newBody := traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, v string) string {
 			var (
@@ -146,7 +146,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			}
 
 			if len(preload) > 0 {
-				g.push(u, pusher, req, resp, n, preloadHeader, fieldsHeader)
+				addPreloadToVary = !g.push(u, pusher, req, resp, n, preloadHeader, fieldsHeader)
 			}
 
 			return newValue
@@ -155,7 +155,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if fieldsHeader {
 			addToVary(resp, "Fields")
 		}
-		if preloadHeader {
+		if addPreloadToVary {
 			addToVary(resp, "Preload")
 		}
 
@@ -184,11 +184,11 @@ func addPreloadHeader(resp *http.Response, link string) {
 
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 // TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
-func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *http.Response, n *node, preloadHeader, fieldsHeader bool) {
+func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *http.Response, n *node, preloadHeader, fieldsHeader bool) bool {
 	url := u.String()
 	if pusher == nil || u.IsAbs() {
 		addPreloadHeader(resp, url)
-		return
+		return false
 	}
 
 	pushOptions := &http.PushOptions{Header: req.Header}
@@ -215,7 +215,7 @@ func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *
 	if err := pusher.Push(url, pushOptions); err != nil {
 		// Don't add the preload header for something already pushed
 		if _, ok := err.(*relationAlreadyPushedError); ok {
-			return
+			return true
 		}
 
 		addPreloadHeader(resp, url)
@@ -225,10 +225,11 @@ func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *
 			"reason":   err,
 		}).Debug("Failed to push")
 
-		return
+		return false
 	}
 
 	log.WithFields(log.Fields{"relation": url}).Debug("Relation pushed")
+	return true
 }
 
 func (g *Gateway) getPusher(rw http.ResponseWriter, req *http.Request) (p *waitPusher, explicitRequest bool, explicitRequestID string) {
