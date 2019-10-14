@@ -14,7 +14,7 @@ function printResponse(ResponseInterface $response): void
     echo "=======\n";
     echo "Headers\n";
     echo "=======\n";
-    echo var_dump($response->getInfo());
+    var_dump($response->getInfo());
     echo "=======\n";
     echo "Content\n";
     echo "=======\n";
