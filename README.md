@@ -108,7 +108,7 @@ const authorResp = await fetch(bookJSON.author);
 // ...
 ```
 
-[Full example, including collections](fixtures/api/static/main.js), see also [use GraphQL as query language for Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain).
+[Full example, including collections](fixtures/static/main.js), see also [use GraphQL as query language for Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain).
 
 Thanks to [HTTP/2 multiplexing](https://stackoverflow.com/a/36519379/1352334), pushed responses will be sent in parallel.
 
