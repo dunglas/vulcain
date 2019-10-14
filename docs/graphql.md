@@ -8,7 +8,7 @@ By using HTTP/2 Server Push, Vulcain fixes most problems caused by compound docu
 * While embedding resources is a forced push (the client receive the full JSON documents, even if it already has some parts of it), HTTP/2 Server Push allows the client [to cancel the push of resources it already has](cache.md), saving bandwidth and improving performance.
 * Consequently, clients and network intermediates (such as [Varnish cache](cache.md)), can store each resource in a specific cache, while resource embedding only allows to have the full big JSON document in cache, [cache invalidation](https://en.wikipedia.org/wiki/Cache_invalidation) is then more efficient with Vulcain, and can be done at the HTTP level.
 
-Specifically with GraphQL, using cache mechanisms provided by the HTTP protocol isn't easy (`POST` requests cannot be cached).
+Specifically with GraphQL, using cache mechanisms provided by the HTTP protocol isn't easy (despite `POST` requests [can be cached](https://docs.varnish-software.com/tutorials/caching-post-requests/) using hashing, but some care is necessary to get it right).
 
 ## Using GraphQL as Query Language for Vulcain
 
