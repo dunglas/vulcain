@@ -22,7 +22,7 @@ assertRequests([
     }],
 ], [
     'Request: "GET ' . GATEWAY_URL . '/books.jsonld"',
-    'Response: "200 ' . GATEWAY_URL . '/books.jsonld"',
     'Request: "GET ' . GATEWAY_URL . '/books/1.jsonld"',
+    'Response: "200 ' . GATEWAY_URL . '/books.jsonld"',
     'Response: "200 ' . GATEWAY_URL . '/books/1.jsonld"',
 ]);

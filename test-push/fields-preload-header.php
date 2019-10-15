@@ -21,11 +21,11 @@ assertRequests([
         }
     }],
 ], [
-    'Request: "GET ' . GATEWAY_URL . '/books.jsonld"',
+    'Accepting pushed response: "GET ' . GATEWAY_URL . '/books/1.jsonld"',
+    'Queueing pushed response: "' . GATEWAY_URL . '/authors/1.jsonld"',
     'Queueing pushed response: "' . GATEWAY_URL . '/books/1.jsonld"',
     'Queueing pushed response: "' . GATEWAY_URL . '/books/2.jsonld"',
-    'Queueing pushed response: "' . GATEWAY_URL . '/authors/1.jsonld"',
+    'Request: "GET ' . GATEWAY_URL . '/books.jsonld"',
     'Response: "200 ' . GATEWAY_URL . '/books.jsonld"',
-    'Accepting pushed response: "GET ' . GATEWAY_URL . '/books/1.jsonld"',
     'Response: "200 ' . GATEWAY_URL . '/books/1.jsonld"',
 ]);

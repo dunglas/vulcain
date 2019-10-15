@@ -11,8 +11,8 @@ require __DIR__ . '/tester.php';
 assertRequests([
     ['/books.jsonld', ['headers' => ['Preload' => '/hydra:member/*/author']]],
 ], [
-    'Request: "GET ' . GATEWAY_URL . '/books.jsonld"',
     'Queueing pushed response: "' . GATEWAY_URL . '/books/1.jsonld"',
     'Queueing pushed response: "' . GATEWAY_URL . '/books/2.jsonld"',
+    'Request: "GET ' . GATEWAY_URL . '/books.jsonld"',
     'Response: "200 ' . GATEWAY_URL . '/books.jsonld"',
 ]);
