@@ -32,13 +32,13 @@ Grab What You Need... Burn The REST!
 The protocol has been published as [an Internet Draft](https://datatracker.ietf.org/doc/draft-dunglas-vulcain/) that [is maintained in this repository](spec/vulcain.md).
 
 A reference, production-grade, implementation [**gateway server**](docs/gateway/install.md) is also available in this repository.
-It's a free software (AGPL) written in Go. A Docker image is provided.
+It's free software (AGPL) written in Go. A Docker image is provided.
 
 ## Introduction
 
 Over the years, several formats have been created to fix performance bottlenecks impacting web APIs: [over fetching, under fetching](https://stackoverflow.com/a/44568365/1352334), [the n+1 problem](https://restfulapi.net/rest-api-n-1-problem/)...
 
-[Current solutions for these problems (GraphQL, JSON:API's embedded resources and sparse fieldsets, ...)](docs/graphql.md) are smart [network hacks](https://apisyouwonthate.com/blog/lets-stop-building-apis-around-a-network-hack) for HTTP/1. But these hacks that come with (too) many drawbacks when it comes to HTTP cache, logs and even security.
+[Current solutions for these problems (GraphQL, JSON:API's embedded resources and sparse fieldsets, ...)](docs/graphql.md) are smart [network hacks](https://apisyouwonthate.com/blog/lets-stop-building-apis-around-a-network-hack) for HTTP/1. But these hacks come with (too) many drawbacks when it comes to HTTP cache, logs and even security.
 
 Fortunately, thanks to the new features introduced in HTTP/2, it's now possible to create true REST APIs fixing these problems with ease and class! Here comes Vulcain!
 
@@ -115,7 +115,7 @@ Thanks to [HTTP/2 multiplexing](https://stackoverflow.com/a/36519379/1352334), p
 When the client will follow the links and issue a new HTTP request (for instance using `fetch()`), the corresponding response will already be in cache, and will be used instantly!
 
 For non-hypermedia APIs (when the identifier of the related resource is a simple string or int), [use an OpenAPI specification to configure links between resources](docs/gateway/openapi.md).
-Tip: the easiest way to create a hypermedia API is to use [the API Platform framework](https://api-platform.com) (by the same author than Vulcain).
+Tip: the easiest way to create a hypermedia API is to use [the API Platform framework](https://api-platform.com) (by the same author as Vulcain).
 
 [More than 90% of users](https://caniuse.com/#feat=http2) have devices supporting HTTP/2. However, for the remaining 10%, and for cases where using HTTP/2 Server Push isn't allowed such as when resources are [served by different authorities](https://tools.ietf.org/html/rfc7540#section-10.1), Vulcain allows to gracefully fallback to [`preload` links](https://www.w3.org/TR/preload/), which can be used together with [the 103 status code](https://tools.ietf.org/html/rfc8297).
 
