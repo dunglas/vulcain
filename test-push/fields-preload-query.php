@@ -21,11 +21,11 @@ assertRequests([
         }
     }],
 ], [
-    'Request: "GET ' . GATEWAY_URL . '/books.jsonld?fields=/hydra:member/*/author&preload=/hydra:member/*/author"',
+    'Queueing pushed response: "' . GATEWAY_URL . '/authors/1.jsonld"',
     'Queueing pushed response: "' . GATEWAY_URL . '/books/1.jsonld?fields=%2Fauthor&preload=%2Fauthor"',
     'Queueing pushed response: "' . GATEWAY_URL . '/books/2.jsonld?fields=%2Fauthor&preload=%2Fauthor"',
-    'Queueing pushed response: "' . GATEWAY_URL . '/authors/1.jsonld"',
-    'Response: "200 ' . GATEWAY_URL . '/books.jsonld?fields=/hydra:member/*/author&preload=/hydra:member/*/author"',
+    'Request: "GET ' . GATEWAY_URL . '/books.jsonld?fields=/hydra:member/*/author&preload=/hydra:member/*/author"',
     'Request: "GET ' . GATEWAY_URL . '/books/1.jsonld?fields=%2Fauthor"',
+    'Response: "200 ' . GATEWAY_URL . '/books.jsonld?fields=/hydra:member/*/author&preload=/hydra:member/*/author"',
     'Response: "200 ' . GATEWAY_URL . '/books/1.jsonld?fields=%2Fauthor"',
 ]);

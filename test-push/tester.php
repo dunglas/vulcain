@@ -48,6 +48,7 @@ function assertRequests(array $requests, array $expectedLogs)
 
     echo implode("\n", $logger->logs) . "\n";
 
+    sort($logger->logs);
     if ($logger->logs !== $expectedLogs) {
         fwrite(STDERR, (new Differ())->diff(implode("\n", $expectedLogs), implode("\n", $logger->logs)));
         exit(1);

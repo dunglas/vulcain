@@ -22,7 +22,7 @@ assertRequests([
     }],
 ], [
     'Request: "GET ' . GATEWAY_URL . '/books.jsonld?fields=/hydra:member/*/author"',
-    'Response: "200 ' . GATEWAY_URL . '/books.jsonld?fields=/hydra:member/*/author"',
     'Request: "GET ' . GATEWAY_URL . '/books/1.jsonld?fields=%2Fauthor"',
+    'Response: "200 ' . GATEWAY_URL . '/books.jsonld?fields=/hydra:member/*/author"',
     'Response: "200 ' . GATEWAY_URL . '/books/1.jsonld?fields=%2Fauthor"',
 ]);
