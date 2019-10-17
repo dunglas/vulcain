@@ -8,7 +8,7 @@ To unleash the full power of Vulcain, API resources should be as granular as pos
 
 Example:
 
-* The user arrive on a detail page, `GET /book/1, stored in cache
+* The user arrive on a detail page, `GET /book/1`, stored in cache
 * The user click on the links to the collection, `GET /books/`, `/books` contains links to `/books/1` and `/books/2`, only `/books/2` is fetched because `/books/1` is already in cache
 
 ## Using Vulcain with Cache Servers such as Varnish
