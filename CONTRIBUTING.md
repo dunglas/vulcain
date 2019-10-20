@@ -1,5 +1,14 @@
 # Contributing
 
+## License and Copyright Attribution
+
+When you open a Pull Request to the project, you agree to license your code under the [GNU AFFERO GENERAL PUBLIC LICENSE](LICENSE)
+and to transfer the copyright on the submitted code to [Kévin Dunglas](https://dunglas.fr).
+
+Be sure to you have the right to do that (if you are a professional, ask your company)!
+
+If you include code from another project, please mention it in the Pull Request description and credit the original author.
+
 ## Start a Demo API and Contribute to the Gateway Server
 
 Clone the project:
