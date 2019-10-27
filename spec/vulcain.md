@@ -168,7 +168,7 @@ The server must return a response containing the following JSON document:
 
 ~~~ json
 {
-    "kind": "novel",
+    "genre": "novel",
     "author": "/authors/1"
 }
 ~~~
