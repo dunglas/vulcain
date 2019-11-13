@@ -1,4 +1,4 @@
-# Vulcain
+<h1 align="center"><img src="vulcain.svg" alt="Vulcain: Use HTTP/2 Server Push to create fast and idiomatic client-driven REST APIs" title="Use HTTP/2 Server Push to create fast and idiomatic client-driven REST APIs"></h1>
 
 Vulcain is a brand new protocol using HTTP/2 Server Push to create fast and idiomatic **client-driven REST** APIs.
 
