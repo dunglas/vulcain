@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gofrs/uuid"
@@ -37,10 +38,22 @@ func addToVary(r *http.Response, header string) {
 	r.Header.Set("Vary", v+", "+header)
 }
 
+func extractHeaderValues(headers []string) []string {
+	var values []string
+
+	for _, header := range headers {
+		for _, value := range strings.Split(header, ",") {
+			values = append(values, strings.Trim(value, " \t"))
+		}
+	}
+
+	return values
+}
+
 func extractFromRequest(req *http.Request) (fields, preload []string, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery bool) {
 	query := req.URL.Query()
 	if len(req.Header["Fields"]) > 0 {
-		fields = req.Header["Fields"]
+		fields = extractHeaderValues(req.Header["Fields"])
 		fieldsHeader = true
 	} else if len(query["fields"]) > 0 {
 		fields = query["fields"]
@@ -48,7 +61,7 @@ func extractFromRequest(req *http.Request) (fields, preload []string, fieldsHead
 	}
 
 	if len(req.Header["Preload"]) > 0 {
-		preload = req.Header["Preload"]
+		preload = extractHeaderValues(req.Header["Preload"])
 		preloadHeader = true
 	} else if len(query["preload"]) > 0 {
 		preload = query["preload"]
