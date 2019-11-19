@@ -11,19 +11,18 @@ import (
 
 func TestNewOptionsFormNew(t *testing.T) {
 	testEnv := map[string]string{
-		"UPSTREAM":              "http://example.com",
-		"MAX_PUSHES":            "-1",
-		"ACME_CERT_DIR":         "/tmp",
-		"ACME_HOSTS":            "example.com,example.org",
-		"ADDR":                  "127.0.0.1:8080",
-		"CERT_FILE":             "foo",
-		"COMPRESS":              "0",
-		"DEBUG":                 "1",
-		"KEY_FILE":              "bar",
-		"READ_TIMEOUT":          "1m",
-		"WRITE_TIMEOUT":         "40s",
-		"USE_FORWARDED_HEADERS": "1",
-		"OPENAPI_FILE":          "openapi.yaml",
+		"UPSTREAM":      "http://example.com",
+		"MAX_PUSHES":    "-1",
+		"ACME_CERT_DIR": "/tmp",
+		"ACME_HOSTS":    "example.com,example.org",
+		"ADDR":          "127.0.0.1:8080",
+		"CERT_FILE":     "foo",
+		"COMPRESS":      "0",
+		"DEBUG":         "1",
+		"KEY_FILE":      "bar",
+		"READ_TIMEOUT":  "1m",
+		"WRITE_TIMEOUT": "40s",
+		"OPENAPI_FILE":  "openapi.yaml",
 	}
 	for k, v := range testEnv {
 		os.Setenv(k, v)
@@ -44,7 +43,6 @@ func TestNewOptionsFormNew(t *testing.T) {
 		time.Minute,
 		40 * time.Second,
 		false,
-		true,
 		"openapi.yaml",
 	}, opts)
 	assert.Nil(t, err)

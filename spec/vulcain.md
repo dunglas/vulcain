@@ -32,10 +32,10 @@ server of the exact data it needs:
 
  *  `Preload` informs the server that relations of the main requested resource will be necessary.
     The server can then reduce the number of round-trips by sending the related resources ahead
-    of time using HTTP/2 [!@RFC7540] Server Push. When using Server Push isn't possible (resources
+    of time using HTTP/2 [@!RFC7540] Server Push. When using Server Push isn't possible (resources
     served by a different authority, server not supporting HTTP/2...), the server can hint the
     client to fetch those resources as early as possible by using the `preload` link relation
-    [@W3C.CR-preload-20171026] and the `103` status code [!@RFC8297].
+    [@!W3C.CR-preload-20171026] and the `103` status code [@!RFC8297].
 
  *  `Fields` informs the server of the list of fields of the retrieved resources that will be used.
     In order to improve performance and reduce bandwidth usage, the server can omit the fields not
@@ -58,7 +58,7 @@ references between resources.
 
 The `Preload` HTTP header allows the client to ask the server to transmit resources linked to the
 main resource it will need as soon as possible. To do so, the `Preload` header `MUST` contain a
-selector (see #Selectors) referencing links to resources that `SHOULD` be preloaded.
+selector [#selectors] referencing links to resources that `SHOULD` be preloaded.
 
 The server `MUST` recursively follow links referenced by the selector. When a selector traverses
 several resources, all the traversed resources `SHOULD` be sent to the client. If several links
@@ -144,7 +144,7 @@ Preload: /author
 
 If it's not possible or beneficial to use HTTP/2 Server Push (reference to a resource not served by
 the same authority, client or server not supporting HTTP/2, client having disabled Server Push...),
-`preload` link relations [@W3C.CR-preload-20171026] `SHOULD` be used as a fallback.
+`preload` link relations [@!W3C.CR-preload-20171026] `SHOULD` be used as a fallback.
 
 The server `MUST NOT` add `preload` link relations if the related resources are pushed using HTTP/2
 Server Push.
@@ -254,8 +254,8 @@ The following table defines the default selector format for common formats:
 Format  | Selector format                                | Identifier
 --------|------------------------------------------------|----------------
 JSON    | Extended JSON Pointer (#extended-json-pointer) | `json-pointer`
-XML     | XPath [@W3C.REC-xpath-19991116]                | `xpath`
-HTML    | CSS selectors [@W3C.REC-selectors-3-20181106]  | `css`
+XML     | XPath [@!W3C.REC-xpath-19991116]                | `xpath`
+HTML    | CSS selectors [@!W3C.REC-selectors-3-20181106]  | `css`
 
 The client and the server can negotiate the use of other selector formats using the `Prefer` HTTP
 header.

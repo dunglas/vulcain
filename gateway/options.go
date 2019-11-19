@@ -11,19 +11,18 @@ import (
 
 // Options stores the gateway's Options
 type Options struct {
-	Debug               bool
-	Addr                string
-	Upstream            *url.URL
-	MaxPushes           int
-	AcmeHosts           []string
-	AcmeCertDir         string
-	CertFile            string
-	KeyFile             string
-	ReadTimeout         time.Duration
-	WriteTimeout        time.Duration
-	Compress            bool
-	UseForwardedHeaders bool
-	OpenAPIFile         string
+	Debug        bool
+	Addr         string
+	Upstream     *url.URL
+	MaxPushes    int
+	AcmeHosts    []string
+	AcmeCertDir  string
+	CertFile     string
+	KeyFile      string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	Compress     bool
+	OpenAPIFile  string
 }
 
 // NewOptionsFromEnv creates a new option instance from environment
@@ -69,7 +68,6 @@ func NewOptionsFromEnv() (*Options, error) {
 		readTimeout,
 		writeTimeout,
 		os.Getenv("COMPRESS") != "0",
-		os.Getenv("USE_FORWARDED_HEADERS") == "1",
 		os.Getenv("OPENAPI_FILE"),
 	}
 

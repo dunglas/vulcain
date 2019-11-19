@@ -69,11 +69,9 @@ func partsToTree(t Type, parts []string, root *node) {
 	switch t {
 	case Preload:
 		child.preload = true
-		break
 
 	case Fields:
 		child.fields = true
-		break
 	}
 
 	partsToTree(t, parts[1:], child)

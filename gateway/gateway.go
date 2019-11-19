@@ -173,6 +173,14 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusBadGateway)
 		g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, false)
 	}
+
+	proto := "https"
+	if req.TLS == nil {
+		proto = "http"
+	}
+
+	req.Header.Set("X-Forwarded-Proto", proto)
+	req.Header.Set("X-Forwarded-Host", req.Host)
 	rp.ServeHTTP(rw, req)
 }
 
