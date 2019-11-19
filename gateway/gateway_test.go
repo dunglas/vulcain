@@ -161,3 +161,7 @@ func TestCanParse(t *testing.T) {
 	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/ld+json"}}}
 	assert.True(t, canParse(r, []string{"foo"}, []string{}))
 }
+
+func TestExtractHeaderValues(t *testing.T) {
+	assert.Equal(t, []string{"foo", "bar", "baz", "bat"}, extractHeaderValues([]string{"foo,bar", "baz  ,\t bat\t"}))
+}
