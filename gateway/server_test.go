@@ -52,7 +52,7 @@ func createTestingUtils(openAPIfile string) (*httptest.Server, *Gateway, http.Cl
 	return upstream, g, client
 }
 
-func TestH2NoPush(t *testing.T) {
+func TestForwardedHeaders(t *testing.T) {
 	upstream, g, client := createTestingUtils("")
 	defer upstream.Close()
 
@@ -66,7 +66,23 @@ func TestH2NoPush(t *testing.T) {
 
 	assert.Equal(t, []string{"</books/1.jsonld?preload=%2Fauthor>; rel=preload; as=fetch", "</books/2.jsonld?preload=%2Fauthor>; rel=preload; as=fetch"}, resp.Header["Link"])
 	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%2Fauthor","/books/2.jsonld?preload=%2Fauthor"]}`, string(b))
-	g.server.Shutdown(context.Background())
+	_ = g.server.Shutdown(context.Background())
+}
+
+func TestH2NoPush(t *testing.T) {
+	upstream, g, client := createTestingUtils("")
+	defer upstream.Close()
+
+	// loop until the gateway is ready
+	var resp *http.Response
+	for resp == nil {
+		resp, _ = client.Get(gatewayURL + "/forwarded")
+	}
+
+	b, _ := ioutil.ReadAll(resp.Body)
+
+	assert.Equal(t, "X-Forwarded-Host: 127.0.0.1:4343\nX-Forwarded-Proto: https", string(b))
+	_ = g.server.Shutdown(context.Background())
 }
 
 // Unfortunately, Go's HTTP client doesn't support Pushes yet (https://github.com/golang/go/issues/18594)
@@ -85,7 +101,7 @@ func TestH2Push(t *testing.T) {
 		}
 	}
 
-	g.server.Shutdown(context.Background())
+	_ = g.server.Shutdown(context.Background())
 }
 
 func TestH2PushLimit(t *testing.T) {
@@ -101,7 +117,7 @@ func TestH2PushLimit(t *testing.T) {
 		t.Log(string(stdoutStderr))
 	}
 
-	g.server.Shutdown(context.Background())
+	_ = g.server.Shutdown(context.Background())
 }
 
 func TestH2PushOpenAPI(t *testing.T) {
@@ -116,5 +132,5 @@ func TestH2PushOpenAPI(t *testing.T) {
 		t.Log(string(stdoutStderr))
 	}
 
-	g.server.Shutdown(context.Background())
+	_ = g.server.Shutdown(context.Background())
 }

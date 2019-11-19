@@ -49,6 +49,9 @@ func (h *JSONLDHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	m := http.NewServeMux()
+	m.HandleFunc("/forwarded", func(rw http.ResponseWriter, req *http.Request) {
+		fmt.Fprint(rw, "X-Forwarded-Host: "+req.Header.Get("X-Forwarded-Host")+"\nX-Forwarded-Proto: "+req.Header.Get("X-Forwarded-Proto"))
+	})
 	m.HandleFunc("/books.jsonld", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(rw, BooksContent)
 	})

@@ -52,7 +52,11 @@ func (g *Gateway) Serve() {
 			g.server.TLSConfig = certManager.TLSConfig()
 
 			// Mandatory for Let's Encrypt http-01 challenge
-			go http.ListenAndServe(":http", certManager.HTTPHandler(nil))
+			go func() {
+				if err := http.ListenAndServe(":http", certManager.HTTPHandler(nil)); err != nil {
+					log.Fatal(err)
+				}
+			}()
 		}
 
 		log.WithFields(log.Fields{"protocol": "https", "addr": g.options.Addr}).Info("Vulcain started")
@@ -68,18 +72,11 @@ func (g *Gateway) Serve() {
 
 // chainHandlers configures and chains handlers
 func (g *Gateway) chainHandlers() http.Handler {
-	var useForwardedHeadersHandlers http.Handler
-	if g.options.UseForwardedHeaders {
-		useForwardedHeadersHandlers = handlers.ProxyHeaders(g)
-	} else {
-		useForwardedHeadersHandlers = g
-	}
-
 	var compressHandler http.Handler
 	if g.options.Compress {
-		compressHandler = handlers.CompressHandler(useForwardedHeadersHandlers)
+		compressHandler = handlers.CompressHandler(g)
 	} else {
-		compressHandler = useForwardedHeadersHandlers
+		compressHandler = g
 	}
 
 	loggingHandler := handlers.CombinedLoggingHandler(os.Stderr, compressHandler)
