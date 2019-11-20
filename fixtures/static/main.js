@@ -2,15 +2,18 @@ const apiURL = "https://localhost:3000";
 
 const cache = {};
 async function fetchRel(rel) {
-  // Prevent a bug (?) in Chrome
+  // Prevent fetching twice the same relation
   if (cache[rel]) {
     return cache[rel];
   }
 
+  // use a Promise to wait for pushed relation in the local cache
+  let res;
+  cache[rel] = new Promise((resolve) => { res = resolve });
+
   const resp = await fetch(apiURL + rel, { credentials: "include" });
   const json = await resp.json();
-  cache[rel] = json;
-
+  res(json);
   return json;
 }
 
