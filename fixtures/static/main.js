@@ -8,12 +8,12 @@ async function fetchRel(rel) {
   }
 
   // use a Promise to wait for pushed relation in the local cache
-  let res
-  cache[rel] = new Promise((resolve) => { res = resolve })
+  let res;
+  cache[rel] = new Promise((resolve) => { res = resolve });
 
   const resp = await fetch(apiURL + rel, { credentials: "include" });
   const json = await resp.json();
-  res(json)
+  res(json);
   return json;
 }
 
