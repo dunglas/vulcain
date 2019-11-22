@@ -1,6 +1,7 @@
 const apiURL = "https://localhost:3000";
 
 const cache = {};
+const result = document.getElementById('result');
 async function fetchRel(rel) {
   // Prevent fetching twice the same relation
   if (cache[rel]) {
@@ -19,15 +20,14 @@ async function fetchRel(rel) {
 
 (async function() {
   const books = await fetchRel("/books.jsonld?preload=/hydra:member/*/author");
+  result.innerText = JSON.stringify(books, null, 2);
 
-  for (let i = 0; i < books["hydra:member"].length; i++) {
-    books["hydra:member"][i] = await fetchRel(books["hydra:member"][i]);
-    books["hydra:member"][i].author = await fetchRel(
-      books["hydra:member"][i].author
-    );
-  }
-
-  document.write(`<pre><code>${JSON.stringify(books, null, 2)}</code></pre>`);
+  books["hydra:member"].forEach(async (bookId, i) => {
+    const book = await fetchRel(bookId);
+    book.author = await fetchRel(book.author);
+    books["hydra:member"][i] = book;
+    result.innerText = JSON.stringify(books, null, 2);
+  });
 
   return books;
 })();
