@@ -26,6 +26,7 @@ Run the server:
 
 Run the fixture API:
 
+    # You must run the server too
     $ cd fixtures
     $ go run main.go
 
@@ -49,7 +50,7 @@ curl https://localhost:3000/books.jsonld \
     --data 'fields=/hydra:member/*/author' \
     --data 'fields=/hydra:member/*/title' \
     --verbose \
-    --insecure 
+    --insecure
 ```
 
 Using headers:
@@ -61,7 +62,7 @@ curl https://localhost:3000/books.jsonld \
     --header 'Fields: /hydra:member/*/author' \
     --header 'Fields: /hydra:member/*/title' \
     --verbose \
-    --insecure 
+    --insecure
 ```
 
 ## Protocol
