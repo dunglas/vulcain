@@ -28,16 +28,6 @@ type Gateway struct {
 	openAPI *openAPI
 }
 
-func addToVary(r *http.Response, header string) {
-	v := r.Header.Get("Vary")
-	if v == "" {
-		r.Header.Set("Vary", header)
-		return
-	}
-
-	r.Header.Set("Vary", v+", "+header)
-}
-
 func extractHeaderValues(headers []string) []string {
 	var values []string
 
@@ -166,10 +156,10 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		})
 
 		if fieldsHeader {
-			addToVary(resp, "Fields")
+			resp.Header.Add("Vary", "Fields")
 		}
 		if addPreloadToVary {
-			addToVary(resp, "Preload")
+			resp.Header.Add("Vary", "Preload")
 		}
 
 		g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, true)
