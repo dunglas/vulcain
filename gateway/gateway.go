@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -184,7 +185,11 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	req.Header.Set("X-Forwarded-Proto", proto)
 	req.Header.Set("X-Forwarded-Host", req.Host)
-	req.Header.Set("X-Forwarded-For", req.RemoteAddr)
+	if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
+		req.Header.Set("X-Forwarded-For", clientIP)
+	} else {
+		req.Header.Del("X-Forwarded-For")
+	}
 	rp.ServeHTTP(rw, req)
 }
 

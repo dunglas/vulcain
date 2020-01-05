@@ -64,7 +64,7 @@ func TestForwardedHeaders(t *testing.T) {
 
 	b, _ := ioutil.ReadAll(resp.Body)
 
-	assert.Equal(t, "X-Forwarded-Host: 127.0.0.1:4343\nX-Forwarded-Proto: https", string(b))
+	assert.Equal(t, "X-Forwarded-Host: 127.0.0.1:4343\nX-Forwarded-Proto: https\nX-Forwarded-For: 127.0.0.1, 127.0.0.1", string(b))
 	_ = g.server.Shutdown(context.Background())
 }
 
