@@ -103,7 +103,7 @@ func TestPreloadHeader(t *testing.T) {
 	b, _ := ioutil.ReadAll(resp.Body)
 
 	assert.Equal(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
-	assert.Equal(t, "Fields, Preload", resp.Header.Get("Vary"))
+	assert.Equal(t, []string{"Fields", "Preload"}, resp.Header["Vary"])
 	assert.Equal(t, `{"hydra:member":[
 		"/books/1.jsonld",
 		"/books/2.jsonld"
