@@ -184,6 +184,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	req.Header.Set("X-Forwarded-Proto", proto)
 	req.Header.Set("X-Forwarded-Host", req.Host)
+	req.Header.Set("X-Forwarded-For", req.RemoteAddr)
 	rp.ServeHTTP(rw, req)
 }
 
