@@ -9,49 +9,16 @@ env:
   GO111MODULE: 'on'
 
 jobs:
-  vet:
-    name: Vet (Go ${{ matrix.go }})
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    container:
-      image: golang:${{ matrix.go }}-alpine
-    strategy:
-      matrix:
-        go:
-          - '1.13'
-      fail-fast: false
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Install system packages
-        run: |
-          apk add \
-            git \
-      - name: Install project dependencies
-        run: go get
-      - name: Vet
-        run: go vet
-
-  format:
-    name: Format (Go ${{ matrix.go }})
-    runs-on: ubuntu-latest
-    container:
-      image: golang:${{ matrix.go }}-alpine
-    strategy:
-      matrix:
-        go:
-          - '1.13'
-      fail-fast: false
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Install system packages
-        run: |
-          apk add \
-            git \
-      - name: Install project dependencies
-        run: go get
-      - name: Format
-        run: gofmt -e -d *.go
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Lint Go Code
+      uses: docker://golangci/golangci-lint:latest
+      with:
+        args: golangci-lint run ./... 
 
   test:
     name: Test (Go ${{ matrix.go }})
@@ -65,7 +32,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Install system packages
         run: |
           apk add \
