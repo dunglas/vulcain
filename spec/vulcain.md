@@ -254,8 +254,8 @@ The following table defines the default selector format for common formats:
 Format  | Selector format                                | Identifier
 --------|------------------------------------------------|----------------
 JSON    | Extended JSON Pointer (#extended-json-pointer) | `json-pointer`
-XML     | XPath [@!W3C.REC-xpath-19991116]                | `xpath`
-HTML    | CSS selectors [@!W3C.REC-selectors-3-20181106]  | `css`
+XML     | XPath [@!W3C.REC-xpath-19991116]               | `xpath`
+HTML    | CSS selectors [@!W3C.REC-selectors-3-20181106] | `css`
 
 The client and the server can negotiate the use of other selector formats using the `Prefer` HTTP
 header.
