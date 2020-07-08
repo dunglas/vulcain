@@ -80,7 +80,7 @@ func TestInvalidUpstream(t *testing.T) {
 	os.Setenv("UPSTREAM", " http://foo.com")
 	defer os.Unsetenv("UPSTREAM")
 	_, err := NewOptionsFromEnv()
-	assert.EqualError(t, err, "parse  http://foo.com: first path segment in URL cannot contain colon")
+	assert.EqualError(t, err, `parse " http://foo.com": first path segment in URL cannot contain colon`)
 }
 
 func TestInvalidMaxPushes(t *testing.T) {

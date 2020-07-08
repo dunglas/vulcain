@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         go:
-          - '1.13'
+          - '1.14'
       fail-fast: false
     steps:
       - name: Checkout
@@ -57,6 +57,6 @@ jobs:
       - name: Test
         run: go test -v -timeout 30s -coverprofile=cover.out github.com/dunglas/vulcain/gateway
       - name: Upload coverage results
-        uses: teohhanhui/codecov-action@master
+        uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
