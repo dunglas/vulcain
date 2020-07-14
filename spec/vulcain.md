@@ -107,7 +107,7 @@ set the `Accept-Language` request header to this value.
 The `type` parameter contains a media type as defined in [@!RFC5988]. If this parameter is provided,
 the server `SHOULD` preload only relations matched by the provided selector and having this media
 type. When possible (for instance, when doing a HTTP/2 Server Push), the server `SHOULD` also set
-the `Accept` header to this value.
+the `Accept` request header to this value.
 
 If several parameters are provided for the same selector, the server `SHOULD` preload only relations
 matching the selector and constraints hinted by the parameters.
