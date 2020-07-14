@@ -33,8 +33,8 @@ server of the exact data it needs:
  *  `Preload` informs the server that relations of the main requested resource will be necessary.
     The server can then reduce the number of round-trips by sending the related resources ahead
     of time using HTTP/2 [@!RFC7540] Server Push. When using Server Push isn't possible (resources
-    served by a different authority, server not supporting HTTP/2...), the server can hint the
-    client to fetch those resources as early as possible by using the `preload` link relation
+    served by a different authority, client or server not supporting HTTP/2...), the server can hint
+    the client to fetch those resources as early as possible by using the `preload` link relation
     [@!W3C.CR-preload-20171026] and the `103` status code [@!RFC8297].
 
  *  `Fields` informs the server of the list of fields of the retrieved resources that will be used.
@@ -211,12 +211,11 @@ Preload: "/author"
 
 ## Using Preload Link Relations
 
-If it's not possible or beneficial to use HTTP/2 Server Push (reference to a resource not served by
-the same authority, client or server not supporting HTTP/2, client having disabled Server Push...),
-`preload` link relations [@!W3C.CR-preload-20171026] `SHOULD` be used as a fallback.
-
-The server `MUST NOT` add `preload` link relations if the related resources are pushed using HTTP/2
-Server Push.
+Sometimes, it's not possible or beneficial to use HTTP/2 Server Push: reference to a resource not
+served by the same authority, client or server not supporting HTTP/2, client having disabled Server
+Push, resource probably already stored in the cache of the client... To hint the client to preload
+the resources by initiating and early request, the server `CAN` add references to the resources to
+preload using `preload` link relations [@!W3C.CR-preload-20171026].
 
 # Fields Header
 
