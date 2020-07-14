@@ -102,7 +102,7 @@ this type.
 The `hreflang` parameter contains a language as defined in [@!RFC5988]. If this parameter is
 provided, the server `SHOULD` preload only relations matched by the provided selector and in this
 language. When possible (for instance, when doing a HTTP/2 Server Push), the server `SHOULD` also
-set the `Accept-Language` header to this value.
+set the `Accept-Language` request header to this value.
 
 The `type` parameter contains a media type as defined in [@!RFC5988]. If this parameter is provided,
 the server `SHOULD` preload only relations matched by the provided selector and having this media
