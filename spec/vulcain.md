@@ -87,33 +87,33 @@ The following optional parameters are defined:
  *  A Parameter whose name is `rel`, and whose value is a String (Section 3.3.3
     of [@!I-D.ietf-httpbis-header-structure]) or a Token (Section 3.3.4 of
     [@!I-D.ietf-httpbis-header-structure]), conveying the expected relation type of the selected
-    link.
+    links.
 
  *  A Parameter whose name is `hreflang`, and whose value is a String (Section 3.3.3 of
-    [@!I-D.ietf-httpbis-header-structure]), conveying the expected language the selected link.
+    [@!I-D.ietf-httpbis-header-structure]), conveying the expected language of the selected links.
 
  *  A Parameter whose name is `type`, and whose value is a String (Section 3.3.3 of
-    [@!I-D.ietf-httpbis-header-structure]), conveying the expected media type the selected link.
+    [@!I-D.ietf-httpbis-header-structure]), conveying the expected media type of the selected links.
 
-The `rel` parameter contains as relation type as defined in [@!RFC5988]. If this parameter is
+The `rel` parameter contains a relation type as defined in [@!RFC5988]. If this parameter is
 provided, the server `SHOULD` preload only relations matched by the provided selector and having
 this type.
 
 The `hreflang` parameter contains a language as defined in [@!RFC5988]. If this parameter is
 provided, the server `SHOULD` preload only relations matched by the provided selector and in this
-language. When possible (for instance, when doing a HTTP/2 Server Push), the server `SHOULD` set the
-`Accept-Language` request header to this value. If the `hreflang` parameter isn't provided but the
-server is able to guess the language of the relation using other mechanisms (such as the `hreflang`
-attribute defined by the Atom format for the `atom:link` element, [@RFC4287] Section 4.2.7.4), then
-the `Accept-Language` request header `SHOULD` be set to the guessed value.
+language. When possible (for instance, when doing a HTTP/2 Server Push), the server `SHOULD` set
+the `Accept-Language` request header to this value. If the `hreflang` parameter isn't provided but
+the server is able to guess the expected language of the relation using other mechanisms (such as
+the `hreflang` attribute defined by the Atom format for the `atom:link` element, [@RFC4287] Section
+4.2.7.4), then the `Accept-Language` request header `SHOULD` be set to the guessed value.
 
 The `type` parameter contains a media type as defined in [@!RFC5988]. If this parameter is provided,
 the server `SHOULD` preload only relations matched by the provided selector and having this media
 type. When possible (for instance, when doing a HTTP/2 Server Push), the server `SHOULD` set the
-`Accept` request header to this value. If the `type` parameter isn't provided but the server is able
-to guess the media type of the relation using other mechanisms (such as the `type` attribute defined
-by the Atom format for the `atom:link` element, [@RFC4287] Section 4.2.7.3), then the `Accept`
-request header `SHOULD` be set to the guessed value.
+`Accept` request header to this value. If the `type` parameter isn't provided but the server is
+able to guess the expected media type of the relation using other mechanisms (such as the `type`
+attribute defined by the Atom format for the `atom:link` element, [@RFC4287] Section 4.2.7.3), then
+the `Accept` request header `SHOULD` be set to the guessed value.
 
 If several parameters are provided for the same selector, the server `SHOULD` preload only relations
 matching the selector and constraints hinted by the parameters.
