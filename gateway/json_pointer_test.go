@@ -3,26 +3,27 @@ package gateway
 import (
 	"testing"
 
+	"github.com/dunglas/httpsfv"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRootNode(t *testing.T) {
 	n := &node{}
-	assert.Equal(t, []string{"/"}, n.strings(Preload, ""))
+	assert.Empty(t, n.httpList(Preload, ""))
 }
 
 func TestImportPointers(t *testing.T) {
 	n := &node{}
-	n.importPointers(Preload, []string{"/foo", "/bar/foo", "/foo/*", "/bar/foo/*/baz"})
-	n.importPointers(Fields, []string{"/foo/bat", "/baz", "/baz/*", "/baz"})
+	n.importPointers(Preload, httpsfv.List{httpsfv.NewItem("/foo"), httpsfv.NewItem("/bar/foo"), httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/bar/foo/*/baz")})
+	n.importPointers(Fields, httpsfv.List{httpsfv.NewItem("/foo/bat"), httpsfv.NewItem("/baz"), httpsfv.NewItem("/baz/*"), httpsfv.NewItem("/baz")})
 
-	assert.Equal(t, []string{"/foo/*", "/bar/foo/*/baz"}, n.strings(Preload, ""))
-	assert.Equal(t, []string{"/foo/bat", "/baz/*"}, n.strings(Fields, ""))
+	assert.Equal(t, httpsfv.List{httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/bar/foo/*/baz")}, n.httpList(Preload, ""))
+	assert.Equal(t, httpsfv.List{httpsfv.NewItem("/foo/bat"), httpsfv.NewItem("/baz/*")}, n.httpList(Fields, ""))
 }
 
 func TestString(t *testing.T) {
 	n := &node{}
-	n.importPointers(Preload, []string{"/foo", "/bar/foo", "/foo/*", "/bar/foo/*/baz"})
+	n.importPointers(Preload, httpsfv.List{httpsfv.NewItem("/foo"), httpsfv.NewItem("/bar/foo"), httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/bar/foo/*/baz")})
 
 	assert.Equal(t, "/", n.String())
 	assert.Equal(t, "/foo", n.children[0].String())

@@ -19,7 +19,7 @@ async function fetchRel(rel) {
 }
 
 (async function() {
-  const books = await fetchRel("/books.jsonld?preload=/hydra:member/*/author");
+  const books = await fetchRel(`/books.jsonld?preload="/hydra:member/*/author"`);
   result.innerText = JSON.stringify(books, null, 2);
 
   books["hydra:member"].forEach(async (bookId, i) => {

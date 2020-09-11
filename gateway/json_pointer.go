@@ -2,14 +2,18 @@ package gateway
 
 import (
 	"strings"
+
+	"github.com/dunglas/httpsfv"
 )
 
 type node struct {
-	preload  bool
-	fields   bool
-	path     string
-	parent   *node
-	children []*node
+	preload       bool
+	preloadParams []*httpsfv.Params
+	fields        bool
+	fieldsParams  []*httpsfv.Params
+	path          string
+	parent        *node
+	children      []*node
 }
 
 // Type is the type of operation to apply, can be Preload or Fields
@@ -22,11 +26,22 @@ const (
 	Fields
 )
 
-func (n *node) importPointers(t Type, pointers []string) {
-	for _, pointer := range pointers {
+func (n *node) importPointers(t Type, pointers httpsfv.List) {
+	for _, member := range pointers {
+		// Ignore invalid value
+		member, ok := member.(httpsfv.Item)
+		if !ok {
+			continue
+		}
+
+		pointer, ok := member.Value.(string)
+		if !ok {
+			continue
+		}
+
 		pointer = strings.Trim(pointer, "/")
 		if pointer != "" {
-			partsToTree(t, strings.Split(pointer, "/"), n)
+			partsToTree(t, strings.Split(pointer, "/"), n, member.Params)
 		}
 	}
 }
@@ -46,7 +61,7 @@ func (n *node) String() string {
 	return s
 }
 
-func partsToTree(t Type, parts []string, root *node) {
+func partsToTree(t Type, parts []string, root *node, params *httpsfv.Params) {
 	if len(parts) == 0 {
 		return
 	}
@@ -69,12 +84,13 @@ func partsToTree(t Type, parts []string, root *node) {
 	switch t {
 	case Preload:
 		child.preload = true
-
+		child.preloadParams = append(child.preloadParams, params)
 	case Fields:
 		child.fields = true
+		child.fieldsParams = append(child.fieldsParams, params)
 	}
 
-	partsToTree(t, parts[1:], child)
+	partsToTree(t, parts[1:], child, params)
 }
 
 func (n *node) hasChildren(t Type) bool {
@@ -90,26 +106,35 @@ func (n *node) hasChildren(t Type) bool {
 	return false
 }
 
-func (n *node) strings(t Type, prefix string) []string {
+func (n *node) httpList(t Type, prefix string) httpsfv.List {
 	if len(n.children) == 0 {
 		if prefix == "" {
-			return []string{"/"}
+			return httpsfv.List{}
 		}
 
-		return []string{prefix}
+		var list httpsfv.List
+		switch t {
+		case Preload:
+			for _, params := range n.preloadParams {
+				list = append(list, httpsfv.Item{Value: prefix, Params: params})
+			}
+		case Fields:
+			for _, params := range n.fieldsParams {
+				list = append(list, httpsfv.Item{Value: prefix, Params: params})
+			}
+		}
+
+		return list
 	}
 
-	var pointers []string
+	var list httpsfv.List
 	for _, c := range n.children {
-		if t == Preload && !c.preload {
-			continue
-		}
-		if t == Fields && !c.fields {
+		if (t == Preload && !c.preload) || (t == Fields && !c.fields) {
 			continue
 		}
 
-		pointers = append(pointers, c.strings(t, prefix+"/"+c.path)...)
+		list = append(list, c.httpList(t, prefix+"/"+c.path)...)
 	}
 
-	return pointers
+	return list
 }

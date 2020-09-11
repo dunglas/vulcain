@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/dunglas/httpsfv"
 	"github.com/dunglas/vulcain/fixtures/api"
 	"github.com/stretchr/testify/assert"
 )
@@ -55,7 +56,7 @@ func TestFieldsQuery(t *testing.T) {
 	defer upstream.Close()
 	defer gateway.Close()
 
-	resp, _ := http.Get(gateway.URL + "/books.jsonld?fields=/@id")
+	resp, _ := http.Get(gateway.URL + `/books.jsonld?fields="/@id"`)
 	b, _ := ioutil.ReadAll(resp.Body)
 
 	assert.Equal(t, `{"@id":"/books.jsonld"}`, string(b))
@@ -68,7 +69,7 @@ func TestFieldsHeader(t *testing.T) {
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", gateway.URL+"/books.jsonld", nil)
-	req.Header.Add("Fields", `/@id`)
+	req.Header.Add("Fields", `"/@id"`)
 
 	resp, _ := client.Do(req)
 	b, _ := ioutil.ReadAll(resp.Body)
@@ -82,11 +83,11 @@ func TestPreloadQuery(t *testing.T) {
 	defer upstream.Close()
 	defer gateway.Close()
 
-	resp, _ := http.Get(gateway.URL + "/books.jsonld?fields=/hydra:member/*&preload=/hydra:member/*/author")
+	resp, _ := http.Get(gateway.URL + `/books.jsonld?fields="/hydra:member/*"&preload="/hydra:member/*/author"`)
 	b, _ := ioutil.ReadAll(resp.Body)
 
-	assert.Equal(t, []string{"</books/1.jsonld?preload=%2Fauthor>; rel=preload; as=fetch", "</books/2.jsonld?preload=%2Fauthor>; rel=preload; as=fetch"}, resp.Header["Link"])
-	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%2Fauthor","/books/2.jsonld?preload=%2Fauthor"]}`, string(b))
+	assert.Equal(t, []string{"</books/1.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch", "</books/2.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch"}, resp.Header["Link"])
+	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%22%2Fauthor%22","/books/2.jsonld?preload=%22%2Fauthor%22"]}`, string(b))
 }
 
 func TestPreloadHeader(t *testing.T) {
@@ -96,8 +97,8 @@ func TestPreloadHeader(t *testing.T) {
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", gateway.URL+"/books.jsonld", nil)
-	req.Header.Add("Fields", `/hydra:member`)
-	req.Header.Add("Preload", `/hydra:member/*`)
+	req.Header.Add("Fields", `"/hydra:member"`)
+	req.Header.Add("Preload", `"/hydra:member/*"`)
 
 	resp, _ := client.Do(req)
 	b, _ := ioutil.ReadAll(resp.Body)
@@ -138,30 +139,27 @@ func TestParseRelation(t *testing.T) {
 
 func TestCanParse(t *testing.T) {
 	r := &http.Response{Header: http.Header{"Content-Type": []string{"text/xml"}}}
-	assert.False(t, canParse(r, []string{"foo"}, []string{}))
+
+	assert.False(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
 
 	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/json"}}}
-	assert.False(t, canParse(r, []string{}, []string{}))
+	assert.False(t, canParse(r, httpsfv.List{}, httpsfv.List{}))
 
 	r = &http.Response{Header: http.Header{
 		"Content-Type": []string{"application/json"},
 		"Prefer":       []string{"selector=css"},
 	}}
-	assert.False(t, canParse(r, []string{"foo"}, []string{}))
+	assert.False(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
 
 	r = &http.Response{Header: http.Header{
 		"Content-Type": []string{"application/json"},
 		"Prefer":       []string{"selector=json-pointer"},
 	}}
-	assert.True(t, canParse(r, []string{"foo"}, []string{}))
+	assert.True(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
 
 	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/ld+json"}}}
-	assert.True(t, canParse(r, []string{"foo"}, []string{}))
+	assert.True(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
 
 	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/ld+json"}}}
-	assert.True(t, canParse(r, []string{"foo"}, []string{}))
-}
-
-func TestExtractHeaderValues(t *testing.T) {
-	assert.Equal(t, []string{"foo", "bar", "baz", "bat"}, extractHeaderValues([]string{"foo,bar", "baz  ,\t bat\t"}))
+	assert.True(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
 }

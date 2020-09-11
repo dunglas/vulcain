@@ -46,9 +46,8 @@ Preload all relations referenced in the `hydra:member`, then in the author relat
 ```
 curl https://localhost:3000/books.jsonld \
     --get \
-    --data 'preload=/hydra:member/*/author' \
-    --data 'fields=/hydra:member/*/author' \
-    --data 'fields=/hydra:member/*/title' \
+    --data 'preload="/hydra:member/*/author"' \
+    --data 'fields="/hydra:member/*/author", "/hydra:member/*/title"' \
     --verbose \
     --insecure
 ```
@@ -58,9 +57,8 @@ Using headers:
 ```
 curl https://localhost:3000/books.jsonld \
     --get \
-    --header 'Preload: /hydra:member/*/author' \
-    --header 'Fields: /hydra:member/*/author' \
-    --header 'Fields: /hydra:member/*/title' \
+    --header 'Preload: "/hydra:member/*/author"' \
+    --header 'Fields: "/hydra:member/*/author", "/hydra:member/*/title"' \
     --verbose \
     --insecure
 ```

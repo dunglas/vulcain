@@ -43,9 +43,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/book'
           links:
-            foo:
             author:
-              # TODO: operationRef isn't supported yet
+              # TODO: add support for operationRef (https://github.com/getkin/kin-openapi/issues/130)
               #operationRef: '#/paths/~1oa~1authors~1{id}/get'
               operationId: getAuthor
               parameters:

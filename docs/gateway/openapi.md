@@ -57,7 +57,7 @@ In response to this request, both `/books/1` and `/authors/1` will be pushed by 
 
 ```http
 GET /books/1 HTTP/2
-Preload: /author
+Preload: "/author"
 ```
 
 ## Creating Links from Collections
@@ -114,7 +114,7 @@ With this HTTP request the server will push all resources linked from this colle
 
 ```http
 GET /books HTTP/2
-Preload: /elements/*
+Preload: "/elements/*"
 ```
 
 ## Known Issues

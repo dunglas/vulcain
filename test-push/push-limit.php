@@ -9,7 +9,7 @@
 require __DIR__ . '/tester.php';
 
 assertRequests([
-    ['/books.jsonld', ['headers' => ['Preload' => '/hydra:member/*/author']]],
+    ['/books.jsonld', ['headers' => ['Preload' => '"/hydra:member/*/author"']]],
 ], [
     'Queueing pushed response: "' . GATEWAY_URL . '/books/1.jsonld"',
     'Queueing pushed response: "' . GATEWAY_URL . '/books/2.jsonld"',

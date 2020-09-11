@@ -8,8 +8,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
-	"strings"
 
+	"github.com/dunglas/httpsfv"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -28,34 +28,31 @@ type Gateway struct {
 	openAPI *openAPI
 }
 
-func extractHeaderValues(headers []string) []string {
-	var values []string
-
-	for _, header := range headers {
-		for _, value := range strings.Split(header, ",") {
-			values = append(values, strings.Trim(value, " \t"))
+func extractFromRequest(req *http.Request) (fields, preload httpsfv.List, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery bool) {
+	query := req.URL.Query()
+	var err error
+	if len(req.Header["Fields"]) > 0 {
+		if fields, err = httpsfv.UnmarshalList(req.Header["Fields"]); err == nil {
+			fieldsHeader = true
 		}
 	}
 
-	return values
-}
-
-func extractFromRequest(req *http.Request) (fields, preload []string, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery bool) {
-	query := req.URL.Query()
-	if len(req.Header["Fields"]) > 0 {
-		fields = extractHeaderValues(req.Header["Fields"])
-		fieldsHeader = true
-	} else if len(query["fields"]) > 0 {
-		fields = query["fields"]
-		fieldsQuery = true
+	if !fieldsHeader && len(query["fields"]) > 0 {
+		if fields, err = httpsfv.UnmarshalList(query["fields"]); err == nil {
+			fieldsQuery = true
+		}
 	}
 
 	if len(req.Header["Preload"]) > 0 {
-		preload = extractHeaderValues(req.Header["Preload"])
-		preloadHeader = true
-	} else if len(query["preload"]) > 0 {
-		preload = query["preload"]
-		preloadQuery = true
+		if preload, err = httpsfv.UnmarshalList(req.Header["Preload"]); err == nil {
+			preloadHeader = true
+		}
+	}
+
+	if !preloadHeader && len(query["preload"]) > 0 {
+		if preload, err = httpsfv.UnmarshalList(query["preload"]); err == nil {
+			preloadQuery = true
+		}
 	}
 
 	return fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery
@@ -86,7 +83,7 @@ func (g *Gateway) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, rou
 	return g.openAPI.getRoute(url)
 }
 
-func canParse(resp *http.Response, fields, preload []string) bool {
+func canParse(resp *http.Response, fields, preload httpsfv.List) bool {
 	if (len(fields) == 0 && len(preload) == 0) || !jsonRe.MatchString(resp.Header.Get("Content-Type")) {
 		// No Vulcain hints, or not JSON: don't modify the response
 		return false
@@ -209,16 +206,18 @@ func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *
 	pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
 
 	if preloadHeader {
-		for _, pp := range n.strings(Preload, "") {
-			if pp != "/" {
-				pushOptions.Header.Add("Preload", pp)
+		preload := n.httpList(Preload, "")
+		if len(preload) > 0 {
+			if v, err := httpsfv.Marshal(preload); err == nil {
+				pushOptions.Header.Set("Preload", v)
 			}
 		}
 	}
 	if fieldsHeader {
-		for _, fp := range n.strings(Fields, "") {
-			if fp != "/" {
-				pushOptions.Header.Add("Fields", fp)
+		fields := n.httpList(Fields, "")
+		if len(fields) > 0 {
+			if v, err := httpsfv.Marshal(fields); err == nil {
+				pushOptions.Header.Set("Fields", v)
 			}
 		}
 	}
