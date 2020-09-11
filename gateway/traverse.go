@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dunglas/httpsfv"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -18,17 +19,23 @@ func unescape(s string) string {
 }
 
 func urlRewriter(u *url.URL, n *node) {
+	preload := n.httpList(Preload, "")
+	fields := n.httpList(Fields, "")
+
 	q := u.Query()
-	for _, pp := range n.strings(Preload, "") {
-		if pp != "/" {
-			q.Add("preload", pp)
+
+	if len(preload) > 0 {
+		if v, err := httpsfv.Marshal(preload); err == nil {
+			q.Add("preload", v)
 		}
 	}
-	for _, fp := range n.strings(Fields, "") {
-		if fp != "/" {
-			q.Add("fields", fp)
+
+	if len(fields) > 0 {
+		if v, err := httpsfv.Marshal(fields); err == nil {
+			q.Add("fields", v)
 		}
 	}
+
 	u.RawQuery = q.Encode()
 }
 

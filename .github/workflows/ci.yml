@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         go:
-          - '1.14'
+          - '1.15'
       fail-fast: false
     steps:
       - name: Checkout

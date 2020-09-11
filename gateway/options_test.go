@@ -70,7 +70,7 @@ func TestInvalidDuration(t *testing.T) {
 		os.Setenv(elem, "1 MN (invalid)")
 		defer os.Unsetenv(elem)
 		_, err := NewOptionsFromEnv()
-		assert.EqualError(t, err, elem+": time: unknown unit  MN (invalid) in duration 1 MN (invalid)")
+		assert.EqualError(t, err, elem+`: time: unknown unit " MN (invalid)" in duration "1 MN (invalid)"`)
 
 		os.Unsetenv(elem)
 	}

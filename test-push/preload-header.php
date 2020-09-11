@@ -4,9 +4,9 @@
 require __DIR__ . '/tester.php';
 
 assertRequests([
-    ['/books.jsonld', ['headers' => ['Preload' => '/hydra:member/*/author']]],
-    ['/books/1.jsonld', ['headers' => ['Preload' => '/author']]],
-    ['/books/2.jsonld', ['headers' => ['Preload' => '/author']]],
+    ['/books.jsonld', ['headers' => ['Preload' => '"/hydra:member/*/author"']]],
+    ['/books/1.jsonld', ['headers' => ['Preload' => '"/author"']]],
+    ['/books/2.jsonld', ['headers' => ['Preload' => '"/author"']]],
     ['/authors/1.jsonld'],
 ], [
     'Accepting pushed response: "GET ' . GATEWAY_URL . '/authors/1.jsonld"',

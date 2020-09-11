@@ -92,7 +92,7 @@ The `Preload` HTTP header introduced by Vulcain can be used to ask the server to
 
 ```http
 GET /books/ HTTP/2
-Preload: /member/*/author
+Preload: "/member/*/author"
 ```
 
 In addition to `/books`, a Vulcain server will use HTTP/2 Server Push to push the `/books/1`, `/books/2` and `/authors/1` resources!
@@ -100,7 +100,7 @@ In addition to `/books`, a Vulcain server will use HTTP/2 Server Push to push th
 Example in JavaScript:
 
 ```javascript
-const bookResp = await fetch("/books/1", { headers: { Preload: "/author" } });
+const bookResp = await fetch("/books/1", { headers: { Preload: `"/author"` } });
 const bookJSON = await bookResp.json();
 
 // Returns immediately, the resource has been pushed and is already in the push cache
@@ -158,9 +158,8 @@ And the following HTTP request:
 
 ```http
 GET /books/1 HTTP/2
-Preload: /author
-Fields: /author/familyName
-Fields: /genre
+Preload: "/author"
+Fields: "/author/familyName", "/genre"
 ```
 
 A Vulcain server will return a response containing the following JSON document:

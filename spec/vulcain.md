@@ -258,8 +258,7 @@ And the following HTTP request:
 ~~~ http
 GET /books/1 HTTP/2
 Preload: "/author"
-Fields: "/author/familyName"
-Fields: "/genre"
+Fields: "/author/familyName", "/genre"
 ~~~
 
 The server must return a response containing the following JSON document:
@@ -374,9 +373,11 @@ the `Preload` and `Fields` HTTP headers. Valid values for these query parameters
 same than the ones defined of the `Preload` and `Fields` HTTP headers.
 
 In conformance with the Section 3.4 of the URI RFC [@!RFC3986], values of query parameters `MUST` be
-percent-encoded. To pass multiple selectors, parameters can be passed multiple times.
+percent-encoded.
 
-Example: `/books/1?fields=%22%2Ftitle%22&fields=%22%2Fauthor%22&preload=%22%2Fauthor%22`
+For instance, the list of fields selector `"/title","/author"` and the preload selector `"/author"`
+passed using query parameters will result in the following URL:
+`/books/1?fields=%22%2Ftitle%22%2C%22%2Fauthor%22&preload=%22%2Fauthor%22`.
 
 When using query parameters, the server `MUST` pass the remaining part of the selector as parameter
 of the generated link.
@@ -457,7 +458,7 @@ In response to this request , both `/books/1` and `/authors/1` should be pushed:
 
 ~~~ http
 GET /books/1 HTTP/2
-Preload: /author
+Preload: "/author"
 ~~~
 
 # Security Considerations

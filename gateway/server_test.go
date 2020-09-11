@@ -75,13 +75,13 @@ func TestH2NoPush(t *testing.T) {
 	// loop until the gateway is ready
 	var resp *http.Response
 	for resp == nil {
-		resp, _ = client.Get(gatewayURL + "/books.jsonld?fields=/hydra:member/*&preload=/hydra:member/*/author")
+		resp, _ = client.Get(gatewayURL + `/books.jsonld?fields="/hydra:member/*"&preload="/hydra:member/*/author"`)
 	}
 
 	b, _ := ioutil.ReadAll(resp.Body)
 
-	assert.Equal(t, []string{"</books/1.jsonld?preload=%2Fauthor>; rel=preload; as=fetch", "</books/2.jsonld?preload=%2Fauthor>; rel=preload; as=fetch"}, resp.Header["Link"])
-	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%2Fauthor","/books/2.jsonld?preload=%2Fauthor"]}`, string(b))
+	assert.Equal(t, []string{"</books/1.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch", "</books/2.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch"}, resp.Header["Link"])
+	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%22%2Fauthor%22","/books/2.jsonld?preload=%22%2Fauthor%22"]}`, string(b))
 	_ = g.server.Shutdown(context.Background())
 }
 
@@ -93,15 +93,15 @@ func TestMultipleValues(t *testing.T) {
 	var resp *http.Response
 	for resp == nil {
 		req, _ := http.NewRequest("GET", gatewayURL+"/books/1.jsonld", nil)
-		req.Header.Add("Preload", "/author,/related")
-		req.Header.Add("Fields", "/author,/related")
+		req.Header.Add("Preload", `"/author","/related"`)
+		req.Header.Add("Fields", `"/author","/related"`)
 		resp, _ = client.Do(req)
 	}
 
 	b, _ := ioutil.ReadAll(resp.Body)
 
 	assert.Equal(t, []string{"</authors/1.jsonld>; rel=preload; as=fetch", "</books/99.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
-	assert.Equal(t, `{"related":"/books/99.jsonld","author":"/authors/1.jsonld"}`, string(b))
+	assert.Equal(t, `{"author":"/authors/1.jsonld","related":"/books/99.jsonld"}`, string(b))
 	_ = g.server.Shutdown(context.Background())
 }
 

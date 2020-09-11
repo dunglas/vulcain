@@ -9,7 +9,7 @@
 require __DIR__ . '/tester.php';
 
 assertRequests([
-    ['/oa/books.json', ['headers' => ['Preload' => '/member/*']]],
+    ['/oa/books.json', ['headers' => ['Preload' => '"/member/*"']]],
 ], [
     'Queueing pushed response: "' . GATEWAY_URL . '/oa/books/1"',
     'Queueing pushed response: "' . GATEWAY_URL . '/oa/books/2"',
