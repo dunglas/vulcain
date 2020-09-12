@@ -35,7 +35,7 @@ server of the exact data it needs:
     of time using HTTP/2 [@!RFC7540] Server Push. When using Server Push isn't possible (resources
     served by a different authority, client or server not supporting HTTP/2...), the server can hint
     the client to fetch those resources as early as possible by using the `preload` link relation
-    [@!W3C.CR-preload-20171026] and the `103` status code [@!RFC8297].
+    [@!W3C.CR-preload-20190626] and the `103` status code [@!RFC8297].
 
  *  `Fields` informs the server of the list of fields of the retrieved resources that will be used.
     In order to improve performance and reduce bandwidth usage, the server can omit the fields not
@@ -215,7 +215,7 @@ Sometimes, it's not possible or beneficial to use HTTP/2 Server Push: reference 
 served by the same authority, client or server not supporting HTTP/2, client having disabled Server
 Push, resource probably already stored in the cache of the client... To hint the client to preload
 the resources by initiating and early request, the server `CAN` add references to the resources to
-preload using `preload` link relations [@!W3C.CR-preload-20171026].
+preload using `preload` link relations [@!W3C.CR-preload-20190626].
 
 # Fields Header
 
@@ -223,7 +223,7 @@ The `Fields` HTTP header allows the client to ask the server to return only the 
 the requested resource, and of the preloaded related resources.
 
 The `Fields` HTTP header is a List Structured Header accepting the exact same values than the
-`Preload` HTTP header defined in (#preload).
+`Preload` HTTP header defined in (#preload-header).
 
 The `Fields` HTTP header `MUST` contain a selector (see #Selector). The server `SHOULD` return only
 the fields matching this selector.
@@ -375,8 +375,8 @@ same than the ones defined of the `Preload` and `Fields` HTTP headers.
 In conformance with the Section 3.4 of the URI RFC [@!RFC3986], values of query parameters `MUST` be
 percent-encoded.
 
-For instance, the list of fields selector `"/title","/author"` and the preload selector `"/author"`
-passed using query parameters will result in the following URL:
+For instance, the list of fields selector `"/title","/author"` and the preload
+selector `"/author"` passed using query parameters will result in the following URL:
 `/books/1?fields=%22%2Ftitle%22%2C%22%2Fauthor%22&preload=%22%2Fauthor%22`.
 
 When using query parameters, the server `MUST` pass the remaining part of the selector as parameter
@@ -579,6 +579,6 @@ Reported compatible with all major browsers and server-side tools.
 # Acknowledgements
 
 The author would like to thank Evert Pot, who authored the Prefer-Push Internet-Draft from which
-some parts of this specification is inspired, and André R. who gave good design ideas.
+some parts of this specification is inspired, and Andre R. who gave good design ideas.
 
 {backmatter}

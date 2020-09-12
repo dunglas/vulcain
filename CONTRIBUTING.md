@@ -76,5 +76,5 @@ To contribute to the protocol itself:
 * Format the Markdown file: `mmark -markdown -w spec/vulcain.md`
 * Generate the XML file: `mmark spec/vulcain.md > spec/vulcain.xml`
 * Validate the generated XML file and generate the text file: `xml2rfc --text --v3 spec/vulcain.xml`
-* Remove non-ASCII characters from the generated `vulcain.txt` file (example: K**é**vin, **Ã**elik)
+* Remove non-ASCII characters from the generated `vulcain.txt` file (example: K**é**vin, Andr**é**, **Ã**elik)
 * If appropriate, be sure to update the reference implementation accordingly
