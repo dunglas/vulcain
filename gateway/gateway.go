@@ -83,13 +83,13 @@ func (g *Gateway) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, rou
 	return g.openAPI.getRoute(url)
 }
 
-func canParse(resp *http.Response, fields, preload httpsfv.List) bool {
+func canParse(resp *http.Response, req *http.Request, fields, preload httpsfv.List) bool {
 	if (len(fields) == 0 && len(preload) == 0) || !jsonRe.MatchString(resp.Header.Get("Content-Type")) {
 		// No Vulcain hints, or not JSON: don't modify the response
 		return false
 	}
 
-	prefers, ok := resp.Header["Prefer"]
+	prefers, ok := req.Header["Prefer"]
 	if !ok {
 		return true
 	}
@@ -109,7 +109,7 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rp := httputil.NewSingleHostReverseProxy(g.options.Upstream)
 	rp.ModifyResponse = func(resp *http.Response) error {
 		fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
-		if !canParse(resp, fields, preload) {
+		if !canParse(resp, req, fields, preload) {
 			g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, false)
 			return nil
 		}

@@ -138,28 +138,44 @@ func TestParseRelation(t *testing.T) {
 }
 
 func TestCanParse(t *testing.T) {
-	r := &http.Response{Header: http.Header{"Content-Type": []string{"text/xml"}}}
+	assert.False(t, canParse(
+		&http.Response{Header: http.Header{"Content-Type": []string{"text/xml"}}},
+		&http.Request{},
+		httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{},
+	))
 
-	assert.False(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
+	assert.False(t, canParse(
+		&http.Response{Header: http.Header{"Content-Type": []string{"application/json"}}},
+		&http.Request{},
+		httpsfv.List{},
+		httpsfv.List{},
+	))
 
-	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/json"}}}
-	assert.False(t, canParse(r, httpsfv.List{}, httpsfv.List{}))
+	assert.False(t, canParse(
+		&http.Response{Header: http.Header{"Content-Type": []string{"application/json"}}},
+		&http.Request{Header: http.Header{"Prefer": []string{"selector=css"}}},
+		httpsfv.List{httpsfv.NewItem("foo")},
+		httpsfv.List{},
+	))
 
-	r = &http.Response{Header: http.Header{
-		"Content-Type": []string{"application/json"},
-		"Prefer":       []string{"selector=css"},
-	}}
-	assert.False(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
+	assert.True(t, canParse(
+		&http.Response{Header: http.Header{"Content-Type": []string{"application/json"}}},
+		&http.Request{Header: http.Header{"Prefer": []string{"selector=json-pointer"}}},
+		httpsfv.List{httpsfv.NewItem("foo")},
+		httpsfv.List{},
+	))
 
-	r = &http.Response{Header: http.Header{
-		"Content-Type": []string{"application/json"},
-		"Prefer":       []string{"selector=json-pointer"},
-	}}
-	assert.True(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
+	assert.True(t, canParse(
+		&http.Response{Header: http.Header{"Content-Type": []string{"application/ld+json"}}},
+		&http.Request{},
+		httpsfv.List{httpsfv.NewItem("foo")},
+		httpsfv.List{},
+	))
 
-	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/ld+json"}}}
-	assert.True(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
-
-	r = &http.Response{Header: http.Header{"Content-Type": []string{"application/ld+json"}}}
-	assert.True(t, canParse(r, httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{}))
+	assert.True(t, canParse(
+		&http.Response{Header: http.Header{"Content-Type": []string{"application/ld+json"}}},
+		&http.Request{},
+		httpsfv.List{httpsfv.NewItem("foo")},
+		httpsfv.List{},
+	))
 }
