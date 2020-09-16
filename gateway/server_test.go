@@ -126,7 +126,7 @@ func TestH2Push(t *testing.T) {
 
 func TestH2PushLimit(t *testing.T) {
 	upstream, g, _ := createTestingUtils("")
-	g.options.MaxPushes = 2
+	g.pushers.maxPushes = 2
 	defer upstream.Close()
 
 	cmd := exec.Command("../test-push/push-limit.php")

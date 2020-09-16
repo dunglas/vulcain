@@ -3,6 +3,7 @@ package gateway
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/dunglas/httpsfv"
 	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,23 +58,6 @@ func extractFromRequest(req *http.Request) (fields, preload httpsfv.List, fields
 	return fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery
 }
 
-func (g *Gateway) cleanupAfterRequest(p *waitPusher, explicitRequestID string, explicitRequest, wait bool) {
-	if p == nil {
-		return
-	}
-
-	if !explicitRequest {
-		p.Done()
-		return
-	}
-
-	if wait {
-		// Wait for subrequests to finish
-		p.Wait()
-	}
-	g.pushers.remove(explicitRequestID)
-}
-
 func (g *Gateway) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, routeTested bool) *openapi3filter.Route {
 	if routeTested || g.openAPI == nil {
 		return route
@@ -83,8 +66,8 @@ func (g *Gateway) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, rou
 	return g.openAPI.getRoute(url)
 }
 
-func canParse(resp *http.Response, req *http.Request, fields, preload httpsfv.List) bool {
-	if (len(fields) == 0 && len(preload) == 0) || !jsonRe.MatchString(resp.Header.Get("Content-Type")) {
+func canParse(responseHeaders http.Header, req *http.Request, fields, preload httpsfv.List) bool {
+	if (len(fields) == 0 && len(preload) == 0) || !jsonRe.MatchString(responseHeaders.Get("Content-Type")) {
 		// No Vulcain hints, or not JSON: don't modify the response
 		return false
 	}
@@ -103,66 +86,76 @@ func canParse(resp *http.Response, req *http.Request, fields, preload httpsfv.Li
 	return false
 }
 
-func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	pusher, explicitRequest, explicitRequestID := g.getPusher(rw, req)
+func (g *Gateway) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, http.Header, error) {
+	pusher := g.pushers.getPusherForRequest(rw, req)
+	fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
+	if !canParse(responseHeaders, req, fields, preload) {
+		g.pushers.cleanupAfterRequest(req, pusher, false)
+		return nil, nil, nil
+	}
 
-	rp := httputil.NewSingleHostReverseProxy(g.options.Upstream)
-	rp.ModifyResponse = func(resp *http.Response) error {
-		fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
-		if !canParse(resp, req, fields, preload) {
-			g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, false)
-			return nil
+	currentBody, err := ioutil.ReadAll(responseBody)
+	if err != nil {
+		g.pushers.cleanupAfterRequest(req, pusher, false)
+		return nil, nil, err
+	}
+
+	tree := &node{}
+	tree.importPointers(Preload, preload)
+	tree.importPointers(Fields, fields)
+
+	var (
+		oaRoute                         *openapi3filter.Route
+		oaRouteTested, addPreloadToVary bool
+	)
+	newBody := traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, v string) string {
+		var (
+			u        *url.URL
+			useOA    bool
+			newValue string
+		)
+
+		oaRoute, oaRouteTested = g.getOpenAPIRoute(req.URL, oaRoute, oaRouteTested), true
+		if u, useOA, err = g.parseRelation(n.String(), v, oaRoute); err != nil {
+			return ""
 		}
 
-		currentBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
+		// Never rewrite values when using OpenAPI, use header instead of query parameters
+		if (preloadQuery || fieldsQuery) && !useOA {
+			urlRewriter(u, n)
+			newValue = u.String()
+		}
+
+		if len(preload) > 0 {
+			addPreloadToVary = !g.push(u, pusher, req, &responseHeaders, n, preloadHeader, fieldsHeader)
+		}
+
+		return newValue
+	})
+
+	if fieldsHeader {
+		responseHeaders.Add("Vary", "Fields")
+	}
+	if addPreloadToVary {
+		responseHeaders.Add("Vary", "Preload")
+	}
+
+	g.pushers.cleanupAfterRequest(req, pusher, true)
+
+	return newBody, responseHeaders, nil
+}
+
+func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	rp := httputil.NewSingleHostReverseProxy(g.options.Upstream)
+	rp.ModifyResponse = func(resp *http.Response) error {
+		newBody, newHeaders, err := g.Apply(req, rw, resp.Body, resp.Header)
+		if newBody == nil {
 			return err
 		}
 
-		tree := &node{}
-		tree.importPointers(Preload, preload)
-		tree.importPointers(Fields, fields)
-
-		var (
-			oaRoute                         *openapi3filter.Route
-			oaRouteTested, addPreloadToVary bool
-		)
-		newBody := traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, v string) string {
-			var (
-				u        *url.URL
-				useOA    bool
-				newValue string
-			)
-
-			oaRoute, oaRouteTested = g.getOpenAPIRoute(req.URL, oaRoute, oaRouteTested), true
-			if u, useOA, err = g.parseRelation(n.String(), v, oaRoute); err != nil {
-				return ""
-			}
-
-			// Never rewrite values when using OpenAPI, use header instead of query parameters
-			if (preloadQuery || fieldsQuery) && !useOA {
-				urlRewriter(u, n)
-				newValue = u.String()
-			}
-
-			if len(preload) > 0 {
-				addPreloadToVary = !g.push(u, pusher, req, resp, n, preloadHeader, fieldsHeader)
-			}
-
-			return newValue
-		})
-
-		if fieldsHeader {
-			resp.Header.Add("Vary", "Fields")
-		}
-		if addPreloadToVary {
-			resp.Header.Add("Vary", "Preload")
-		}
-
-		g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, true)
-
 		newBodyBuffer := bytes.NewBuffer(newBody)
 		resp.Body = ioutil.NopCloser(newBodyBuffer)
+		resp.Header = newHeaders
 		resp.Header["Content-Length"] = []string{fmt.Sprint(newBodyBuffer.Len())}
 
 		return nil
@@ -171,7 +164,6 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		// Adapted from the default ErrorHandler
 		log.Errorf("http: proxy error: %v", err)
 		rw.WriteHeader(http.StatusBadGateway)
-		g.cleanupAfterRequest(pusher, explicitRequestID, explicitRequest, false)
 	}
 
 	proto := "https"
@@ -186,36 +178,35 @@ func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // addPreloadHeader sets preload Link headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/)
-func addPreloadHeader(resp *http.Response, link string) {
-	resp.Header.Add("Link", "<"+link+">; rel=preload; as=fetch")
+func addPreloadHeader(h *http.Header, link string) {
+	h.Add("Link", "<"+link+">; rel=preload; as=fetch")
 	log.WithFields(log.Fields{"relation": link}).Debug("Link preload header added")
 }
 
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 // TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
-func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *http.Response, n *node, preloadHeader, fieldsHeader bool) bool {
+func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, newHeaders *http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
 	url := u.String()
 	if pusher == nil || u.IsAbs() {
-		addPreloadHeader(resp, url)
+		addPreloadHeader(newHeaders, url)
 		return false
 	}
 
-	pushOptions := &http.PushOptions{Header: req.Header}
+	pushOptions := &http.PushOptions{Header: req.Header.Clone()}
+	pushOptions.Header.Set(internalRequestHeader, pusher.id)
 	pushOptions.Header.Del("Preload")
 	pushOptions.Header.Del("Fields")
 	pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
 
 	if preloadHeader {
-		preload := n.httpList(Preload, "")
-		if len(preload) > 0 {
+		if preload := n.httpList(Preload, ""); len(preload) > 0 {
 			if v, err := httpsfv.Marshal(preload); err == nil {
 				pushOptions.Header.Set("Preload", v)
 			}
 		}
 	}
 	if fieldsHeader {
-		fields := n.httpList(Fields, "")
-		if len(fields) > 0 {
+		if fields := n.httpList(Fields, ""); len(fields) > 0 {
 			if v, err := httpsfv.Marshal(fields); err == nil {
 				pushOptions.Header.Set("Fields", v)
 			}
@@ -229,7 +220,7 @@ func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *
 			return true
 		}
 
-		addPreloadHeader(resp, url)
+		addPreloadHeader(newHeaders, url)
 		log.WithFields(log.Fields{
 			"node":     n.String(),
 			"relation": url,
@@ -241,37 +232,6 @@ func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, resp *
 
 	log.WithFields(log.Fields{"relation": url}).Debug("Relation pushed")
 	return true
-}
-
-func (g *Gateway) getPusher(rw http.ResponseWriter, req *http.Request) (p *waitPusher, explicitRequest bool, explicitRequestID string) {
-	internalPusher, ok := rw.(http.Pusher)
-	if !ok {
-		// Not an HTTP/2 connection
-		return nil, false, ""
-	}
-
-	// Need https://github.com/golang/go/issues/20566 to get rid of this hack
-	explicitRequestID = req.Header.Get("Vulcain-Explicit-Request")
-	if explicitRequestID != "" {
-		p, ok = g.pushers.get(explicitRequestID)
-		if !ok {
-			// Should not happen, is an attacker forging an evil request?
-			log.WithFields(log.Fields{"uri": req.RequestURI, "explicitRequestID": explicitRequestID}).Debug("Pusher not found")
-			explicitRequestID = ""
-		}
-	}
-
-	if explicitRequestID == "" {
-		// Explicit request
-		explicitRequestID = uuid.Must(uuid.NewV4()).String()
-		p = newWaitPusher(internalPusher, g.options.MaxPushes)
-		req.Header.Set("Vulcain-Explicit-Request", explicitRequestID)
-		g.pushers.add(explicitRequestID, p)
-
-		return p, true, explicitRequestID
-	}
-
-	return p, false, explicitRequestID
 }
 
 // NewGatewayFromEnv creates a gateway using the configuration set in env vars
@@ -294,7 +254,7 @@ func NewGateway(options *Options) *Gateway {
 	return &Gateway{
 		options,
 		nil,
-		&pushers{pusherMap: make(map[string]*waitPusher)},
+		&pushers{maxPushes: options.MaxPushes, pusherMap: make(map[string]*waitPusher)},
 		o,
 	}
 }

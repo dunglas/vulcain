@@ -8,12 +8,18 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+
+	"github.com/gofrs/uuid"
+	log "github.com/sirupsen/logrus"
 )
+
+const internalRequestHeader = "Vulcain-Explicit-Request"
 
 // From the RFC:
 //   The server SHOULD send PUSH_PROMISE (Section 6.6) frames prior to sending any frames that reference the promised responses.
 //   This avoids a race where clients issue requests prior to receiving any PUSH_PROMISE frames.
 type waitPusher struct {
+	id         string
 	nbPushes   int
 	pushedURLs map[string]struct{}
 	maxPushes  int
@@ -54,9 +60,10 @@ func (p *waitPusher) Push(url string, opts *http.PushOptions) error {
 	return nil
 }
 
-func newWaitPusher(p http.Pusher, maxPushes int) *waitPusher {
+func newWaitPusher(p http.Pusher, id string, maxPushes int) *waitPusher {
 	return &waitPusher{
 		internalPusher: p,
+		id:             id,
 		maxPushes:      maxPushes,
 		pushedURLs:     make(map[string]struct{}),
 	}
@@ -64,24 +71,74 @@ func newWaitPusher(p http.Pusher, maxPushes int) *waitPusher {
 
 type pushers struct {
 	sync.RWMutex
+	maxPushes int
 	pusherMap map[string]*waitPusher
 }
 
-func (p *pushers) add(id string, w *waitPusher) {
+func (p *pushers) add(w *waitPusher) {
 	p.Lock()
-	p.pusherMap[id] = w
-	p.Unlock()
+	defer p.Unlock()
+	p.pusherMap[w.id] = w
 }
 
-func (p *pushers) get(id string) (*waitPusher, bool) {
+func (p *pushers) get(id string) *waitPusher {
 	p.RLock()
-	w, ok := p.pusherMap[id]
-	p.RUnlock()
-	return w, ok
+	defer p.RUnlock()
+	return p.pusherMap[id]
 }
 
 func (p *pushers) remove(id string) {
 	p.Lock()
+	defer p.Unlock()
 	delete(p.pusherMap, id)
-	p.Unlock()
+}
+
+// End of the code adapted from the Hades project
+
+// Copyright (c) 2020 Kévin Dunglas
+// APGLv3 License
+
+func (p *pushers) getPusherForRequest(rw http.ResponseWriter, req *http.Request) (w *waitPusher) {
+	internalPusher, ok := rw.(http.Pusher)
+	if !ok {
+		// Not an HTTP/2 connection
+		return nil
+	}
+
+	// Need https://github.com/golang/go/issues/20566 to get rid of this hack
+	explicitRequestID := req.Header.Get(internalRequestHeader)
+	if explicitRequestID != "" {
+		w = p.get(explicitRequestID)
+		if w == nil {
+			// Should not happen, is an attacker forging an evil request?
+			log.WithFields(log.Fields{"uri": req.RequestURI, "explicitRequestID": explicitRequestID}).Debug("Pusher not found")
+			req.Header.Del(internalRequestHeader)
+			explicitRequestID = ""
+		}
+	}
+
+	if explicitRequestID == "" {
+		// Explicit request
+		w = newWaitPusher(internalPusher, uuid.Must(uuid.NewV4()).String(), p.maxPushes)
+		p.add(w)
+	}
+
+	return w
+}
+
+func (p *pushers) cleanupAfterRequest(req *http.Request, w *waitPusher, wait bool) {
+	if w == nil {
+		return
+	}
+
+	if req.Header.Get(internalRequestHeader) != "" {
+		w.Done()
+		return
+	}
+
+	if wait {
+		// Wait for subrequests to finish
+		w.Wait()
+	}
+	p.remove(w.id)
 }
