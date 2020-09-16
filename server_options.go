@@ -1,4 +1,4 @@
-package gateway
+package vulcain
 
 import (
 	"fmt"
@@ -9,8 +9,10 @@ import (
 	"time"
 )
 
-// Options stores the gateway's Options
-type Options struct {
+// ServerOptions stores the server's options
+//
+// Deprecated: use the Caddy server module or the standalone library instead
+type ServerOptions struct {
 	Debug        bool
 	Addr         string
 	Upstream     *url.URL
@@ -27,7 +29,9 @@ type Options struct {
 
 // NewOptionsFromEnv creates a new option instance from environment
 // It returns an error if mandatory env env vars are missing
-func NewOptionsFromEnv() (*Options, error) {
+//
+// Deprecated: use the Caddy server module or the standalone library instead
+func NewOptionsFromEnv() (*ServerOptions, error) {
 	var err error
 
 	readTimeout, err := parseDurationFromEnvVar("READ_TIMEOUT", time.Duration(0))
@@ -56,7 +60,7 @@ func NewOptionsFromEnv() (*Options, error) {
 		}
 	}
 
-	o := &Options{
+	o := &ServerOptions{
 		os.Getenv("DEBUG") == "1",
 		os.Getenv("ADDR"),
 		upstream,

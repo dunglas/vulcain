@@ -1,4 +1,4 @@
-package gateway
+package vulcain
 
 // Adapted from the Hades project (https://github.com/gabesullice/hades/blob/master/lib/server/pusher.go)
 // Copyright (c) 2019 Gabriel Sullice

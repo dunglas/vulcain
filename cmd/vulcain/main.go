@@ -8,7 +8,7 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 
-	"github.com/dunglas/vulcain/gateway"
+	"github.com/dunglas/vulcain"
 )
 
 func init() {
@@ -26,10 +26,10 @@ func init() {
 }
 
 func main() {
-	g, err := gateway.NewGatewayFromEnv()
+	s, err := vulcain.NewServerFromEnv()
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	g.Serve()
+	s.Serve()
 }

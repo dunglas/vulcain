@@ -1,12 +1,10 @@
-package gateway
+package vulcain
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"regexp"
 
@@ -20,12 +18,27 @@ var (
 	preferRe = regexp.MustCompile(`\s*selector="?json-pointer"?`)
 )
 
-// Gateway is the main struct
-type Gateway struct {
-	options *Options
-	server  *http.Server
+type Options struct {
+	OpenAPIFile string
+	MaxPushes   int
+}
+
+// Vulcain is the main struct
+type Vulcain struct {
 	pushers *pushers
 	openAPI *openAPI
+}
+
+func New(options Options) *Vulcain {
+	var o *openAPI
+	if options.OpenAPIFile != "" {
+		o = newOpenAPI(options.OpenAPIFile)
+	}
+
+	return &Vulcain{
+		&pushers{maxPushes: options.MaxPushes, pusherMap: make(map[string]*waitPusher)},
+		o,
+	}
 }
 
 func extractFromRequest(req *http.Request) (fields, preload httpsfv.List, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery bool) {
@@ -58,12 +71,12 @@ func extractFromRequest(req *http.Request) (fields, preload httpsfv.List, fields
 	return fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery
 }
 
-func (g *Gateway) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, routeTested bool) *openapi3filter.Route {
-	if routeTested || g.openAPI == nil {
+func (v *Vulcain) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, routeTested bool) *openapi3filter.Route {
+	if routeTested || v.openAPI == nil {
 		return route
 	}
 
-	return g.openAPI.getRoute(url)
+	return v.openAPI.getRoute(url)
 }
 
 func canParse(responseHeaders http.Header, req *http.Request, fields, preload httpsfv.List) bool {
@@ -86,17 +99,17 @@ func canParse(responseHeaders http.Header, req *http.Request, fields, preload ht
 	return false
 }
 
-func (g *Gateway) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, http.Header, error) {
-	pusher := g.pushers.getPusherForRequest(rw, req)
+func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, http.Header, error) {
+	pusher := v.pushers.getPusherForRequest(rw, req)
 	fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
 	if !canParse(responseHeaders, req, fields, preload) {
-		g.pushers.cleanupAfterRequest(req, pusher, false)
+		v.pushers.cleanupAfterRequest(req, pusher, false)
 		return nil, nil, nil
 	}
 
 	currentBody, err := ioutil.ReadAll(responseBody)
 	if err != nil {
-		g.pushers.cleanupAfterRequest(req, pusher, false)
+		v.pushers.cleanupAfterRequest(req, pusher, false)
 		return nil, nil, err
 	}
 
@@ -108,15 +121,15 @@ func (g *Gateway) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		oaRoute                         *openapi3filter.Route
 		oaRouteTested, addPreloadToVary bool
 	)
-	newBody := traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, v string) string {
+	newBody := traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, val string) string {
 		var (
 			u        *url.URL
 			useOA    bool
 			newValue string
 		)
 
-		oaRoute, oaRouteTested = g.getOpenAPIRoute(req.URL, oaRoute, oaRouteTested), true
-		if u, useOA, err = g.parseRelation(n.String(), v, oaRoute); err != nil {
+		oaRoute, oaRouteTested = v.getOpenAPIRoute(req.URL, oaRoute, oaRouteTested), true
+		if u, useOA, err = v.parseRelation(n.String(), val, oaRoute); err != nil {
 			return ""
 		}
 
@@ -127,12 +140,13 @@ func (g *Gateway) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		}
 
 		if len(preload) > 0 {
-			addPreloadToVary = !g.push(u, pusher, req, &responseHeaders, n, preloadHeader, fieldsHeader)
+			addPreloadToVary = !v.push(u, pusher, req, &responseHeaders, n, preloadHeader, fieldsHeader)
 		}
 
 		return newValue
 	})
 
+	responseHeaders.Set("Content-Length", fmt.Sprint(len(newBody)))
 	if fieldsHeader {
 		responseHeaders.Add("Vary", "Fields")
 	}
@@ -140,41 +154,9 @@ func (g *Gateway) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		responseHeaders.Add("Vary", "Preload")
 	}
 
-	g.pushers.cleanupAfterRequest(req, pusher, true)
+	v.pushers.cleanupAfterRequest(req, pusher, true)
 
 	return newBody, responseHeaders, nil
-}
-
-func (g *Gateway) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	rp := httputil.NewSingleHostReverseProxy(g.options.Upstream)
-	rp.ModifyResponse = func(resp *http.Response) error {
-		newBody, newHeaders, err := g.Apply(req, rw, resp.Body, resp.Header)
-		if newBody == nil {
-			return err
-		}
-
-		newBodyBuffer := bytes.NewBuffer(newBody)
-		resp.Body = ioutil.NopCloser(newBodyBuffer)
-		resp.Header = newHeaders
-		resp.Header["Content-Length"] = []string{fmt.Sprint(newBodyBuffer.Len())}
-
-		return nil
-	}
-	rp.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
-		// Adapted from the default ErrorHandler
-		log.Errorf("http: proxy error: %v", err)
-		rw.WriteHeader(http.StatusBadGateway)
-	}
-
-	proto := "https"
-	if req.TLS == nil {
-		proto = "http"
-	}
-
-	req.Header.Set("X-Forwarded-Proto", proto)
-	req.Header.Set("X-Forwarded-Host", req.Host)
-	req.Header.Del("X-Forwarded-For")
-	rp.ServeHTTP(rw, req)
 }
 
 // addPreloadHeader sets preload Link headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/)
@@ -185,7 +167,7 @@ func addPreloadHeader(h *http.Header, link string) {
 
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 // TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
-func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, newHeaders *http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
+func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHeaders *http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
 	url := u.String()
 	if pusher == nil || u.IsAbs() {
 		addPreloadHeader(newHeaders, url)
@@ -234,35 +216,10 @@ func (g *Gateway) push(u *url.URL, pusher *waitPusher, req *http.Request, newHea
 	return true
 }
 
-// NewGatewayFromEnv creates a gateway using the configuration set in env vars
-func NewGatewayFromEnv() (*Gateway, error) {
-	options, err := NewOptionsFromEnv()
-	if err != nil {
-		return nil, err
-	}
-
-	return NewGateway(options), nil
-}
-
-// NewGateway creates a Vulcain gateway instance
-func NewGateway(options *Options) *Gateway {
-	var o *openAPI
-	if options.OpenAPIFile != "" {
-		o = newOpenAPI(options.OpenAPIFile)
-	}
-
-	return &Gateway{
-		options,
-		nil,
-		&pushers{maxPushes: options.MaxPushes, pusherMap: make(map[string]*waitPusher)},
-		o,
-	}
-}
-
-func (g *Gateway) parseRelation(selector, rel string, oaRoute *openapi3filter.Route) (*url.URL, bool, error) {
+func (v *Vulcain) parseRelation(selector, rel string, oaRoute *openapi3filter.Route) (*url.URL, bool, error) {
 	var useOA bool
 	if oaRoute != nil {
-		if oaRel := g.openAPI.getRelation(oaRoute, selector, rel); oaRel != "" {
+		if oaRel := v.openAPI.getRelation(oaRoute, selector, rel); oaRel != "" {
 			rel = oaRel
 			useOA = true
 		}
