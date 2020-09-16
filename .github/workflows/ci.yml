@@ -55,7 +55,7 @@ jobs:
           composer install --no-progress --no-suggest --ansi
         working-directory: test-push
       - name: Test
-        run: go test -v -timeout 30s -coverprofile=cover.out github.com/dunglas/vulcain/gateway
+        run: go test -v -timeout 30s -coverprofile=cover.out github.com/dunglas/vulcain
       - name: Upload coverage results
         uses: codecov/codecov-action@v1
         with:
