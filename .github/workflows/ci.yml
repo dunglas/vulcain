@@ -9,16 +9,15 @@ env:
   GO111MODULE: 'on'
 
 jobs:
-  lint:
+  golangci:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-    - name: Check out code
-      uses: actions/checkout@v2
-    - name: Lint Go Code
-      uses: docker://golangci/golangci-lint:latest
-      with:
-        args: golangci-lint run ./... 
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
 
   test:
     name: Test (Go ${{ matrix.go }})

@@ -26,10 +26,10 @@ func init() {
 }
 
 func main() {
-	s, err := vulcain.NewServerFromEnv()
+	s, err := vulcain.NewServerFromEnv() //nolint:staticcheck
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	s.Serve()
+	s.Serve() //nolint:staticcheck
 }
