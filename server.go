@@ -48,14 +48,17 @@ type server struct {
 func (s *server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rp := httputil.NewSingleHostReverseProxy(s.options.Upstream)
 	rp.ModifyResponse = func(resp *http.Response) error {
-		newBody, newHeaders, err := s.vulcain.Apply(req, rw, resp.Body, resp.Header)
+		if !s.vulcain.CanApply(rw, req, resp.StatusCode, resp.Header) {
+			return nil
+		}
+
+		newBody, err := s.vulcain.Apply(req, rw, resp.Body, resp.Header)
 		if newBody == nil {
 			return err
 		}
 
 		newBodyBuffer := bytes.NewBuffer(newBody)
 		resp.Body = ioutil.NopCloser(newBodyBuffer)
-		resp.Header = newHeaders
 
 		return nil
 	}

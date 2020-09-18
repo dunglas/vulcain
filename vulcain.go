@@ -1,12 +1,12 @@
 package vulcain
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 
 	"github.com/dunglas/httpsfv"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -79,9 +79,28 @@ func (v *Vulcain) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, rou
 	return v.openAPI.getRoute(url)
 }
 
-func canParse(responseHeaders http.Header, req *http.Request, fields, preload httpsfv.List) bool {
-	if (len(fields) == 0 && len(preload) == 0) || !jsonRe.MatchString(responseHeaders.Get("Content-Type")) {
-		// No Vulcain hints, or not JSON: don't modify the response
+// CanApply checks is Vulcain is applicable for this request and response
+func (v *Vulcain) CanApply(rw http.ResponseWriter, req *http.Request, responseStatus int, responseHeaders http.Header) bool {
+	pusher := v.pushers.getPusherForRequest(rw, req)
+
+	// Not a success, or not JSON: don't modify the response
+	if responseStatus < 200 ||
+		responseStatus > 300 ||
+		!jsonRe.MatchString(responseHeaders.Get("Content-Type")) {
+		v.pushers.cleanupAfterRequest(req, pusher)
+
+		return false
+	}
+
+	query := req.URL.Query()
+
+	// No Vulcain hints: don't modify the response
+	if req.Header.Get("Preload") == "" &&
+		req.Header.Get("Fields") == "" &&
+		query.Get("preload") == "" &&
+		query.Get("fields") == "" {
+		v.pushers.cleanupAfterRequest(req, pusher)
+
 		return false
 	}
 
@@ -96,21 +115,20 @@ func canParse(responseHeaders http.Header, req *http.Request, fields, preload ht
 		}
 	}
 
+	v.pushers.cleanupAfterRequest(req, pusher)
+
 	return false
 }
 
-func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, http.Header, error) {
+// Apply pushes the requested relations and rewrite the response if necessary
+// CanApply must always be called before Apply, or waiting pushers will leak
+func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, error) {
 	pusher := v.pushers.getPusherForRequest(rw, req)
 	fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
-	if !canParse(responseHeaders, req, fields, preload) {
-		v.pushers.cleanupAfterRequest(req, pusher, false)
-		return nil, nil, nil
-	}
 
 	currentBody, err := ioutil.ReadAll(responseBody)
 	if err != nil {
-		v.pushers.cleanupAfterRequest(req, pusher, false)
-		return nil, nil, err
+		return nil, err
 	}
 
 	tree := &node{}
@@ -140,13 +158,13 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		}
 
 		if len(preload) > 0 {
-			addPreloadToVary = !v.push(u, pusher, req, &responseHeaders, n, preloadHeader, fieldsHeader)
+			addPreloadToVary = !v.push(u, pusher, req, responseHeaders, n, preloadHeader, fieldsHeader)
 		}
 
 		return newValue
 	})
 
-	responseHeaders.Set("Content-Length", fmt.Sprint(len(newBody)))
+	responseHeaders.Set("Content-Length", strconv.Itoa(len(newBody)))
 	if fieldsHeader {
 		responseHeaders.Add("Vary", "Fields")
 	}
@@ -154,20 +172,20 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		responseHeaders.Add("Vary", "Preload")
 	}
 
-	v.pushers.cleanupAfterRequest(req, pusher, true)
+	v.pushers.cleanupAfterRequest(req, pusher)
 
-	return newBody, responseHeaders, nil
+	return newBody, nil
 }
 
 // addPreloadHeader sets preload Link headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/)
-func addPreloadHeader(h *http.Header, link string) {
+func addPreloadHeader(h http.Header, link string) {
 	h.Add("Link", "<"+link+">; rel=preload; as=fetch")
 	log.WithFields(log.Fields{"relation": link}).Debug("Link preload header added")
 }
 
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 // TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
-func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHeaders *http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
+func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
 	url := u.String()
 	if pusher == nil || u.IsAbs() {
 		addPreloadHeader(newHeaders, url)

@@ -32,6 +32,7 @@ func createTestingUtils(openAPIfile string, maxPushes int) (*httptest.Server, *s
 
 	upstreamURL, _ := url.Parse(upstream.URL)
 	s := NewServer(&ServerOptions{
+		Debug:       true,
 		Addr:        testAddr,
 		MaxPushes:   maxPushes,
 		Upstream:    upstreamURL,

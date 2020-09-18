@@ -2,10 +2,10 @@ package vulcain
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
-	"github.com/dunglas/httpsfv"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,45 +26,78 @@ func TestParseRelation(t *testing.T) {
 	assert.Nil(t, u)
 }
 
-func TestCanParse(t *testing.T) {
-	assert.False(t, canParse(
+func TestCanApply(t *testing.T) {
+	v := New(Options{})
+	assert.False(t, v.CanApply(
+		&httptest.ResponseRecorder{},
+		&http.Request{URL: &url.URL{}},
+		200,
 		http.Header{"Content-Type": []string{"text/xml"}},
-		&http.Request{},
-		httpsfv.List{httpsfv.NewItem("foo")}, httpsfv.List{},
 	))
 
-	assert.False(t, canParse(
+	assert.False(t, v.CanApply(
+		&httptest.ResponseRecorder{},
+		&http.Request{URL: &url.URL{}},
+		200,
 		http.Header{"Content-Type": []string{"application/json"}},
-		&http.Request{},
-		httpsfv.List{},
-		httpsfv.List{},
 	))
 
-	assert.False(t, canParse(
+	assert.False(t, v.CanApply(
+		&httptest.ResponseRecorder{},
+		&http.Request{
+			URL:    &url.URL{},
+			Header: http.Header{"Preload": []string{`"foo"`}, "Prefer": []string{"selector=css"}},
+		},
+		200,
 		http.Header{"Content-Type": []string{"application/json"}},
-		&http.Request{Header: http.Header{"Prefer": []string{"selector=css"}}},
-		httpsfv.List{httpsfv.NewItem("foo")},
-		httpsfv.List{},
 	))
 
-	assert.True(t, canParse(
+	assert.False(t, v.CanApply(
+		&httptest.ResponseRecorder{},
+		&http.Request{
+			URL:    &url.URL{},
+			Header: http.Header{"Preload": []string{`"foo"`}, "Prefer": []string{"selector=css"}},
+		},
+		500,
 		http.Header{"Content-Type": []string{"application/json"}},
-		&http.Request{Header: http.Header{"Prefer": []string{"selector=json-pointer"}}},
-		httpsfv.List{httpsfv.NewItem("foo")},
-		httpsfv.List{},
 	))
 
-	assert.True(t, canParse(
+	assert.True(t, v.CanApply(
+		&httptest.ResponseRecorder{},
+		&http.Request{
+			URL:    &url.URL{},
+			Header: http.Header{"Preload": []string{`"foo"`}, "Prefer": []string{"selector=json-pointer"}},
+		},
+		200,
+		http.Header{"Content-Type": []string{"application/json"}},
+	))
+
+	assert.True(t, v.CanApply(
+		&httptest.ResponseRecorder{},
+		&http.Request{
+			URL:    &url.URL{},
+			Header: http.Header{"Preload": []string{`"foo"`}},
+		},
+		200,
 		http.Header{"Content-Type": []string{"application/ld+json"}},
-		&http.Request{},
-		httpsfv.List{httpsfv.NewItem("foo")},
-		httpsfv.List{},
 	))
 
-	assert.True(t, canParse(
+	assert.True(t, v.CanApply(
+		&httptest.ResponseRecorder{},
+		&http.Request{
+			URL:    &url.URL{},
+			Header: http.Header{"Preload": []string{`"foo"`}},
+		},
+		200,
 		http.Header{"Content-Type": []string{"application/ld+json"}},
-		&http.Request{},
-		httpsfv.List{httpsfv.NewItem("foo")},
-		httpsfv.List{},
+	))
+
+	assert.True(t, v.CanApply(
+		&httptest.ResponseRecorder{},
+		&http.Request{
+			URL: &url.URL{RawQuery: `preload="foo"`},
+		},
+		200,
+		http.Header{"Content-Type": []string{"application/ld+json"}},
 	))
 }

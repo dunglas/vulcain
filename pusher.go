@@ -126,7 +126,7 @@ func (p *pushers) getPusherForRequest(rw http.ResponseWriter, req *http.Request)
 	return w
 }
 
-func (p *pushers) cleanupAfterRequest(req *http.Request, w *waitPusher, wait bool) {
+func (p *pushers) cleanupAfterRequest(req *http.Request, w *waitPusher) {
 	if w == nil {
 		return
 	}
@@ -136,9 +136,7 @@ func (p *pushers) cleanupAfterRequest(req *http.Request, w *waitPusher, wait boo
 		return
 	}
 
-	if wait {
-		// Wait for subrequests to finish
-		w.Wait()
-	}
+	// Wait for subrequests to finish
+	w.Wait()
 	p.remove(w.id)
 }
