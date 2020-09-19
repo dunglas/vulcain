@@ -10,7 +10,7 @@ import (
 
 	"github.com/dunglas/httpsfv"
 	"github.com/getkin/kin-openapi/openapi3filter"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 var (
@@ -21,23 +21,31 @@ var (
 type Options struct {
 	OpenAPIFile string
 	MaxPushes   int
+	Logger      *zap.Logger
 }
 
 // Vulcain is the main struct
 type Vulcain struct {
 	pushers *pushers
 	openAPI *openAPI
+	logger  *zap.Logger
 }
 
 func New(options Options) *Vulcain {
+	logger := options.Logger
+	if options.Logger == nil {
+		logger = zap.NewNop()
+	}
+
 	var o *openAPI
 	if options.OpenAPIFile != "" {
-		o = newOpenAPI(options.OpenAPIFile)
+		o = newOpenAPI(options.OpenAPIFile, logger)
 	}
 
 	return &Vulcain{
-		&pushers{maxPushes: options.MaxPushes, pusherMap: make(map[string]*waitPusher)},
+		&pushers{maxPushes: options.MaxPushes, pusherMap: make(map[string]*waitPusher), logger: logger},
 		o,
+		logger,
 	}
 }
 
@@ -139,7 +147,7 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		oaRoute                         *openapi3filter.Route
 		oaRouteTested, addPreloadToVary bool
 	)
-	newBody := traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, val string) string {
+	newBody := v.traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, val string) string {
 		var (
 			u        *url.URL
 			useOA    bool
@@ -178,9 +186,9 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 }
 
 // addPreloadHeader sets preload Link headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/)
-func addPreloadHeader(h http.Header, link string) {
+func (v *Vulcain) addPreloadHeader(h http.Header, link string) {
 	h.Add("Link", "<"+link+">; rel=preload; as=fetch")
-	log.WithFields(log.Fields{"relation": link}).Debug("Link preload header added")
+	v.logger.Debug("link preload header added", zap.String("relation", link))
 }
 
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
@@ -188,7 +196,7 @@ func addPreloadHeader(h http.Header, link string) {
 func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
 	url := u.String()
 	if pusher == nil || u.IsAbs() {
-		addPreloadHeader(newHeaders, url)
+		v.addPreloadHeader(newHeaders, url)
 		return false
 	}
 
@@ -220,17 +228,13 @@ func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHea
 			return true
 		}
 
-		addPreloadHeader(newHeaders, url)
-		log.WithFields(log.Fields{
-			"node":     n.String(),
-			"relation": url,
-			"reason":   err,
-		}).Debug("Failed to push")
+		v.addPreloadHeader(newHeaders, url)
+		v.logger.Debug("failed to push", zap.Stringer("node", n), zap.String("relation", url), zap.Error(err))
 
 		return false
 	}
 
-	log.WithFields(log.Fields{"relation": url}).Debug("Relation pushed")
+	v.logger.Debug("relation pushed", zap.String("relation", url))
 	return true
 }
 
@@ -248,12 +252,7 @@ func (v *Vulcain) parseRelation(selector, rel string, oaRoute *openapi3filter.Ro
 		return u, useOA, nil
 	}
 
-	log.WithFields(
-		log.Fields{
-			"node":     selector,
-			"relation": rel,
-			"reason":   err,
-		}).Debug("The relation is an invalid URL")
+	v.logger.Debug("the relation is an invalid URL", zap.String("node", selector), zap.String("relation", rel), zap.Error(err))
 
 	return nil, useOA, err
 }

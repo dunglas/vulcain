@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/dunglas/httpsfv"
-	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
+	"go.uber.org/zap"
 )
 
 func unescape(s string) string {
@@ -47,7 +47,7 @@ func getBytes(r gjson.Result, body []byte) []byte {
 	return []byte(r.Raw)
 }
 
-func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler func(n *node, v string) string) []byte {
+func (v *Vulcain) traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler func(n *node, v string) string) []byte {
 	var (
 		newBody []byte
 		err     error
@@ -85,10 +85,10 @@ func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler f
 			var i int
 			result.ForEach(func(_, value gjson.Result) bool {
 				// TODO: support iterating over objects
-				rawBytes := traverseJSON(getBytes(value, currentBody), n, filter, relationHandler)
+				rawBytes := v.traverseJSON(getBytes(value, currentBody), n, filter, relationHandler)
 				newBody, err = sjson.SetRawBytes(newBody, strconv.Itoa(i), rawBytes)
 				if err != nil {
-					log.WithFields(log.Fields{"node": n.String(), "reason": err, "index": i}).Debug("Cannot update array")
+					v.logger.Debug("cannot update array", zap.Stringer("node", n), zap.Int("index", i), zap.Error(err))
 				}
 
 				i++
@@ -100,11 +100,11 @@ func traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler f
 		path := unescape(n.path)
 		result := gjson.GetBytes(currentBody, path)
 		if result.Exists() {
-			rawBytes := traverseJSON(getBytes(result, currentBody), n, filter, relationHandler)
+			rawBytes := v.traverseJSON(getBytes(result, currentBody), n, filter, relationHandler)
 
 			newBody, err = sjson.SetRawBytes(newBody, path, rawBytes)
 			if err != nil {
-				log.WithFields(log.Fields{"node": n.String(), "reason": err}).Debug("Cannot update new document")
+				v.logger.Debug("cannot update new document", zap.Stringer("node", n), zap.Error(err))
 			}
 		}
 	}

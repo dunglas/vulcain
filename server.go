@@ -3,6 +3,7 @@ package vulcain
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -10,7 +11,7 @@ import (
 	"os/signal"
 
 	"github.com/gorilla/handlers"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -30,9 +31,23 @@ func NewServerFromEnv() (*server, error) {
 //
 // Deprecated: use the Caddy server module or the standalone library instead
 func NewServer(options *ServerOptions) *server {
+	var (
+		logger *zap.Logger
+		err    error
+	)
+	if options.Debug {
+		logger, err = zap.NewDevelopment()
+	} else {
+		logger, err = zap.NewProduction()
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
 	return &server{
 		options: options,
-		vulcain: New(Options{options.OpenAPIFile, options.MaxPushes}),
+		vulcain: New(Options{options.OpenAPIFile, options.MaxPushes, logger}),
 	}
 }
 
@@ -64,7 +79,7 @@ func (s *server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	rp.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
 		// Adapted from the default ErrorHandler
-		log.Errorf("http: proxy error: %v", err)
+		s.vulcain.logger.Error("http: proxy error", zap.Error(err))
 		rw.WriteHeader(http.StatusBadGateway)
 	}
 
@@ -97,9 +112,9 @@ func (s *server) Serve() {
 		<-sigint
 
 		if err := s.server.Shutdown(context.Background()); err != nil {
-			log.Error(err)
+			s.vulcain.logger.Error(err.Error())
 		}
-		log.Infoln("My Baby Shot Me Down")
+		s.vulcain.logger.Info("my baby shot me down")
 		close(idleConnsClosed)
 	}()
 
@@ -107,7 +122,7 @@ func (s *server) Serve() {
 	var err error
 
 	if !acme && s.options.CertFile == "" && s.options.KeyFile == "" {
-		log.WithFields(log.Fields{"protocol": "http", "addr": s.options.Addr}).Info("Vulcain started")
+		s.vulcain.logger.Info("vulcain started", zap.String("protocol", "http"), zap.String("addr", s.options.Addr))
 		err = s.server.ListenAndServe()
 	} else {
 		// TLS
@@ -124,17 +139,17 @@ func (s *server) Serve() {
 			// Mandatory for Let's Encrypt http-01 challenge
 			go func() {
 				if err := http.ListenAndServe(":http", certManager.HTTPHandler(nil)); err != nil {
-					log.Fatal(err)
+					s.vulcain.logger.Fatal(err.Error())
 				}
 			}()
 		}
 
-		log.WithFields(log.Fields{"protocol": "https", "addr": s.options.Addr}).Info("Vulcain started")
+		s.vulcain.logger.Info("vulcain started", zap.String("protocol", "https"), zap.String("addr", s.options.Addr))
 		err = s.server.ListenAndServeTLS(s.options.CertFile, s.options.KeyFile)
 	}
 
 	if err != http.ErrServerClosed {
-		log.Fatal(err)
+		s.vulcain.logger.Fatal(err.Error())
 	}
 
 	<-idleConnsClosed
@@ -151,9 +166,17 @@ func (s *server) chainHandlers() http.Handler {
 
 	loggingHandler := handlers.CombinedLoggingHandler(os.Stderr, compressHandler)
 	recoveryHandler := handlers.RecoveryHandler(
-		handlers.RecoveryLogger(log.New()),
+		handlers.RecoveryLogger(zapRecoveryHandlerLogger{s.vulcain.logger}),
 		handlers.PrintRecoveryStack(s.options.Debug),
 	)(loggingHandler)
 
 	return recoveryHandler
+}
+
+type zapRecoveryHandlerLogger struct {
+	logger *zap.Logger
+}
+
+func (z zapRecoveryHandlerLogger) Println(args ...interface{}) {
+	z.logger.Error(fmt.Sprint(args...))
 }

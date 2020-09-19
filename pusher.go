@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/gofrs/uuid"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const internalRequestHeader = "Vulcain-Explicit-Request"
@@ -73,6 +73,7 @@ type pushers struct {
 	sync.RWMutex
 	maxPushes int
 	pusherMap map[string]*waitPusher
+	logger    *zap.Logger
 }
 
 func (p *pushers) add(w *waitPusher) {
@@ -111,7 +112,7 @@ func (p *pushers) getPusherForRequest(rw http.ResponseWriter, req *http.Request)
 		w = p.get(explicitRequestID)
 		if w == nil {
 			// Should not happen, is an attacker forging an evil request?
-			log.WithFields(log.Fields{"uri": req.RequestURI, "explicitRequestID": explicitRequestID}).Debug("Pusher not found")
+			p.logger.Debug("pusher not found", zap.String("url", req.RequestURI), zap.String("explicitRequestID", explicitRequestID))
 			req.Header.Del(internalRequestHeader)
 			explicitRequestID = ""
 		}
