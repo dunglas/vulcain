@@ -165,7 +165,7 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 			newValue = u.String()
 		}
 
-		if len(preload) > 0 {
+		if n.preload {
 			addPreloadToVary = !v.push(u, pusher, req, responseHeaders, n, preloadHeader, fieldsHeader)
 		}
 
