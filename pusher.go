@@ -5,6 +5,7 @@ package vulcain
 // MIT License
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -15,9 +16,12 @@ import (
 
 const internalRequestHeader = "Vulcain-Explicit-Request"
 
+// waitPusher pushes relations and allow to wait for all PUSH_PROMISE to be sent
 // From the RFC:
 //   The server SHOULD send PUSH_PROMISE (Section 6.6) frames prior to sending any frames that reference the promised responses.
 //   This avoids a race where clients issue requests prior to receiving any PUSH_PROMISE frames.
+//
+// Use newWaitPusher() to create a wait pusher
 type waitPusher struct {
 	id         string
 	nbPushes   int
@@ -28,11 +32,8 @@ type waitPusher struct {
 	internalPusher http.Pusher
 }
 
-type relationAlreadyPushedError struct{}
-
-func (f relationAlreadyPushedError) Error() string {
-	return "Relation already pushed"
-}
+// errRelationAlreadyPushed occurs when the relation has already been pushed
+var errRelationAlreadyPushed = errors.New("relation already pushed")
 
 func (p *waitPusher) Push(url string, opts *http.PushOptions) error {
 	if p.maxPushes != -1 && p.nbPushes >= p.maxPushes {
@@ -44,7 +45,7 @@ func (p *waitPusher) Push(url string, opts *http.PushOptions) error {
 	p.Lock()
 	if _, ok := p.pushedURLs[cacheKey]; ok {
 		p.Unlock()
-		return &relationAlreadyPushedError{}
+		return errRelationAlreadyPushed
 	}
 
 	p.nbPushes++
@@ -60,6 +61,7 @@ func (p *waitPusher) Push(url string, opts *http.PushOptions) error {
 	return nil
 }
 
+// newWaitPusher creates a new waitPusher
 func newWaitPusher(p http.Pusher, id string, maxPushes int) *waitPusher {
 	return &waitPusher{
 		internalPusher: p,
@@ -69,6 +71,8 @@ func newWaitPusher(p http.Pusher, id string, maxPushes int) *waitPusher {
 	}
 }
 
+// pushers stores the list of current active pusher
+// The same pusher is shared for the explicit response and all pushed responses
 type pushers struct {
 	sync.RWMutex
 	maxPushes int
@@ -76,18 +80,21 @@ type pushers struct {
 	logger    *zap.Logger
 }
 
+// add adds a new waitPusher to the list
 func (p *pushers) add(w *waitPusher) {
 	p.Lock()
 	defer p.Unlock()
 	p.pusherMap[w.id] = w
 }
 
+// get gets the waitPusher from the list
 func (p *pushers) get(id string) *waitPusher {
 	p.RLock()
 	defer p.RUnlock()
 	return p.pusherMap[id]
 }
 
+// remove removes the waitPusher from the list
 func (p *pushers) remove(id string) {
 	p.Lock()
 	defer p.Unlock()
@@ -99,6 +106,7 @@ func (p *pushers) remove(id string) {
 // Copyright (c) 2020 Kévin Dunglas
 // APGLv3 License
 
+// getPusherForRequest retrieve the pusher associated with the explicit request
 func (p *pushers) getPusherForRequest(rw http.ResponseWriter, req *http.Request) (w *waitPusher) {
 	internalPusher, ok := rw.(http.Pusher)
 	if !ok {
@@ -127,7 +135,8 @@ func (p *pushers) getPusherForRequest(rw http.ResponseWriter, req *http.Request)
 	return w
 }
 
-func (p *pushers) cleanupAfterRequest(req *http.Request, w *waitPusher) {
+// finish waits for all PUSH_PROMISES to be sent before returning for the explicit request
+func (p *pushers) finish(req *http.Request, w *waitPusher) {
 	if w == nil {
 		return
 	}

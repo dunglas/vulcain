@@ -1,6 +1,13 @@
+// Package vulcain helps implementing the Vulcain protocol (https://vulcain.rocks).
+// It provides helper functions to parse HTTP requests containing "preload" and "fields" directives,
+// to extract and push using HTTP/2 Server Push the relations of a JSON document matched by the "preload" directive,
+// and to modify the JSON document according to both directives.
+//
+// The package can be used in conjunction with Go's httputil.ReverseProxy as well as in any HTTP handler.
 package vulcain
 
 import (
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -18,19 +25,29 @@ var (
 	preferRe = regexp.MustCompile(`\s*selector="?json-pointer"?`)
 )
 
+// Options allows to set the configuration
 type Options struct {
+	// OpenAPIFile contains the path to an OpenAPI definition (in YAML or JSON) documenting the relation between resources
+	// This is useful only for non-hypermedia APIs
 	OpenAPIFile string
-	MaxPushes   int
-	Logger      *zap.Logger
+
+	// MaxPushes is the maximum number of resources to push
+	// Set MaxPushes to -1 to disable the limit
+	MaxPushes int
+
+	// Logger is the logger to use
+	Logger *zap.Logger
 }
 
-// Vulcain is the main struct
+// Vulcain parses and allow to modify the HTTP response according to the "preload" and "fields" directives extracted from the request
+// Use New to create a Vulcain instance
 type Vulcain struct {
 	pushers *pushers
 	openAPI *openAPI
 	logger  *zap.Logger
 }
 
+// New creates a Vulcain instance
 func New(options Options) *Vulcain {
 	logger := options.Logger
 	if options.Logger == nil {
@@ -49,6 +66,7 @@ func New(options Options) *Vulcain {
 	}
 }
 
+// extractFromRequest extracts the "fields" and "preload" directives from the appropriate HTTP headers and query parameters
 func extractFromRequest(req *http.Request) (fields, preload httpsfv.List, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery bool) {
 	query := req.URL.Query()
 	var err error
@@ -79,6 +97,7 @@ func extractFromRequest(req *http.Request) (fields, preload httpsfv.List, fields
 	return fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery
 }
 
+// getOpenAPIRoute gets the openapi3filter.Route instance corresponding to the given URL
 func (v *Vulcain) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, routeTested bool) *openapi3filter.Route {
 	if routeTested || v.openAPI == nil {
 		return route
@@ -87,7 +106,8 @@ func (v *Vulcain) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, rou
 	return v.openAPI.getRoute(url)
 }
 
-// CanApply checks is Vulcain is applicable for this request and response
+// CanApply checks is Vulcain's directives can be applied for this request and response
+// CanApply must always be called
 func (v *Vulcain) CanApply(rw http.ResponseWriter, req *http.Request, responseStatus int, responseHeaders http.Header) bool {
 	pusher := v.pushers.getPusherForRequest(rw, req)
 
@@ -95,7 +115,7 @@ func (v *Vulcain) CanApply(rw http.ResponseWriter, req *http.Request, responseSt
 	if responseStatus < 200 ||
 		responseStatus > 300 ||
 		!jsonRe.MatchString(responseHeaders.Get("Content-Type")) {
-		v.pushers.cleanupAfterRequest(req, pusher)
+		v.pushers.finish(req, pusher)
 
 		return false
 	}
@@ -107,7 +127,7 @@ func (v *Vulcain) CanApply(rw http.ResponseWriter, req *http.Request, responseSt
 		req.Header.Get("Fields") == "" &&
 		query.Get("preload") == "" &&
 		query.Get("fields") == "" {
-		v.pushers.cleanupAfterRequest(req, pusher)
+		v.pushers.finish(req, pusher)
 
 		return false
 	}
@@ -123,16 +143,19 @@ func (v *Vulcain) CanApply(rw http.ResponseWriter, req *http.Request, responseSt
 		}
 	}
 
-	v.pushers.cleanupAfterRequest(req, pusher)
+	v.pushers.finish(req, pusher)
 
 	return false
 }
 
-// Apply pushes the requested relations and rewrite the response if necessary
-// CanApply must always be called before Apply, or waiting pushers will leak
+// Apply pushes the requested relations and return rewrote response if necessary
+// The content of the HTTP response is not automatically modified,
+// it's the responsibility of the user to use the returned updated content.
+// On the other hand headers are automatically updated.
+// CanApply must always be called before Apply, or internal pushers will leak
 func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, error) {
 	pusher := v.pushers.getPusherForRequest(rw, req)
-	fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
+	f, p, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
 
 	currentBody, err := ioutil.ReadAll(responseBody)
 	if err != nil {
@@ -140,14 +163,14 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 	}
 
 	tree := &node{}
-	tree.importPointers(Preload, preload)
-	tree.importPointers(Fields, fields)
+	tree.importPointers(preload, p)
+	tree.importPointers(fields, f)
 
 	var (
 		oaRoute                         *openapi3filter.Route
 		oaRouteTested, addPreloadToVary bool
 	)
-	newBody := v.traverseJSON(currentBody, tree, len(fields) > 0, func(n *node, val string) string {
+	newBody := v.traverseJSON(currentBody, tree, len(f) > 0, func(n *node, val string) string {
 		var (
 			u        *url.URL
 			useOA    bool
@@ -180,17 +203,18 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		responseHeaders.Add("Vary", "Preload")
 	}
 
-	v.pushers.cleanupAfterRequest(req, pusher)
+	v.pushers.finish(req, pusher)
 
 	return newBody, nil
 }
 
-// addPreloadHeader sets preload Link headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/)
+// addPreloadHeader sets preload Link rel=preload headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/)
 func (v *Vulcain) addPreloadHeader(h http.Header, link string) {
 	h.Add("Link", "<"+link+">; rel=preload; as=fetch")
 	v.logger.Debug("link preload header added", zap.String("relation", link))
 }
 
+// push pushes a relation or add a Link rel=preload header as a fallback
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 // TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
 func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
@@ -207,15 +231,15 @@ func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHea
 	pushOptions.Header.Del("Te") // Trailing headers aren't supported by Firefox for pushes, and we don't use them
 
 	if preloadHeader {
-		if preload := n.httpList(Preload, ""); len(preload) > 0 {
+		if preload := n.httpList(preload, ""); len(preload) > 0 {
 			if v, err := httpsfv.Marshal(preload); err == nil {
 				pushOptions.Header.Set("Preload", v)
 			}
 		}
 	}
 	if fieldsHeader {
-		if fields := n.httpList(Fields, ""); len(fields) > 0 {
-			if v, err := httpsfv.Marshal(fields); err == nil {
+		if f := n.httpList(fields, ""); len(f) > 0 {
+			if v, err := httpsfv.Marshal(f); err == nil {
 				pushOptions.Header.Set("Fields", v)
 			}
 		}
@@ -224,7 +248,7 @@ func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHea
 	// HTTP/2, and relative relation, push!
 	if err := pusher.Push(url, pushOptions); err != nil {
 		// Don't add the preload header for something already pushed
-		if _, ok := err.(*relationAlreadyPushedError); ok {
+		if errors.Is(err, errRelationAlreadyPushed) {
 			return true
 		}
 
@@ -238,6 +262,7 @@ func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHea
 	return true
 }
 
+// parseRelation returns the URL of a relation, using OpenAPI to build it if necessary
 func (v *Vulcain) parseRelation(selector, rel string, oaRoute *openapi3filter.Route) (*url.URL, bool, error) {
 	var useOA bool
 	if oaRoute != nil {

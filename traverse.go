@@ -12,26 +12,28 @@ import (
 	"go.uber.org/zap"
 )
 
+// unescape unescapes an extended JSON pointer
 func unescape(s string) string {
 	s = strings.ReplaceAll(s, "~2", "*")
 	s = strings.ReplaceAll(s, "~1", "/")
 	return strings.ReplaceAll(s, "~0", "~")
 }
 
+// urlRewriter rewrites an URL to propagate the "preload" and "fields" selectors to relations
 func urlRewriter(u *url.URL, n *node) {
-	preload := n.httpList(Preload, "")
-	fields := n.httpList(Fields, "")
+	p := n.httpList(preload, "")
+	f := n.httpList(fields, "")
 
 	q := u.Query()
 
-	if len(preload) > 0 {
-		if v, err := httpsfv.Marshal(preload); err == nil {
+	if len(p) > 0 {
+		if v, err := httpsfv.Marshal(p); err == nil {
 			q.Add("preload", v)
 		}
 	}
 
-	if len(fields) > 0 {
-		if v, err := httpsfv.Marshal(fields); err == nil {
+	if len(f) > 0 {
+		if v, err := httpsfv.Marshal(f); err == nil {
 			q.Add("fields", v)
 		}
 	}
@@ -39,6 +41,7 @@ func urlRewriter(u *url.URL, n *node) {
 	u.RawQuery = q.Encode()
 }
 
+// getBytes retrieves a slice of bytes
 func getBytes(r gjson.Result, body []byte) []byte {
 	if r.Index > 0 {
 		return body[r.Index : r.Index+len(r.Raw)]
@@ -47,6 +50,8 @@ func getBytes(r gjson.Result, body []byte) []byte {
 	return []byte(r.Raw)
 }
 
+// traverseJSON traverses and modify if needed the JSON document
+// it pushes the relations specified by a "preload" directive
 func (v *Vulcain) traverseJSON(currentBody []byte, tree *node, filter bool, relationHandler func(n *node, v string) string) []byte {
 	var (
 		newBody []byte
@@ -62,7 +67,7 @@ func (v *Vulcain) traverseJSON(currentBody []byte, tree *node, filter bool, rela
 		return handleRelation(currentBody, strconv.FormatInt(result.Int(), 10), tree, relationHandler)
 	}
 
-	filter = filter && tree.hasChildren(Fields)
+	filter = filter && tree.hasChildren(fields)
 	if filter {
 		if result.IsArray() {
 			newBody = []byte("[]")

@@ -14,8 +14,8 @@ func TestUnescape(t *testing.T) {
 
 func TestUrlRewriter(t *testing.T) {
 	n := &node{}
-	n.importPointers(Preload, httpsfv.List{httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/bar/baz")})
-	n.importPointers(Fields, httpsfv.List{httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/baz/bar")})
+	n.importPointers(preload, httpsfv.List{httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/bar/baz")})
+	n.importPointers(fields, httpsfv.List{httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/baz/bar")})
 
 	u, _ := url.Parse("/test")
 	urlRewriter(u, n)
@@ -32,7 +32,7 @@ func urlRewriteRelationHandler(n *node, v string) string {
 
 func TestTraverseJSONFields(t *testing.T) {
 	n := &node{}
-	n.importPointers(Fields, httpsfv.List{httpsfv.NewItem("/notexist"), httpsfv.NewItem("/bar")})
+	n.importPointers(fields, httpsfv.List{httpsfv.NewItem("/notexist"), httpsfv.NewItem("/bar")})
 
 	result := New(Options{}).traverseJSON([]byte(`{"foo": "f", "bar": "b"}`), n, true, urlRewriteRelationHandler)
 	assert.Equal(t, `{"bar":"b"}`, string(result))
@@ -40,7 +40,7 @@ func TestTraverseJSONFields(t *testing.T) {
 
 func TestTraverseJSONFieldsRewriteURL(t *testing.T) {
 	n := &node{}
-	n.importPointers(Fields, httpsfv.List{httpsfv.NewItem("/foo/*/bar")})
+	n.importPointers(fields, httpsfv.List{httpsfv.NewItem("/foo/*/bar")})
 
 	result := New(Options{}).traverseJSON([]byte(`{"foo": ["/a", "/b"]}`), n, true, urlRewriteRelationHandler)
 	assert.Equal(t, `{"foo":["/a?fields=%22%2Fbar%22","/b?fields=%22%2Fbar%22"]}`, string(result))
@@ -48,7 +48,7 @@ func TestTraverseJSONFieldsRewriteURL(t *testing.T) {
 
 func TestTraverseJSONPreload(t *testing.T) {
 	n := &node{}
-	n.importPointers(Preload, httpsfv.List{httpsfv.NewItem("/notexist"), httpsfv.NewItem("/bar")})
+	n.importPointers(preload, httpsfv.List{httpsfv.NewItem("/notexist"), httpsfv.NewItem("/bar")})
 
 	result := New(Options{}).traverseJSON([]byte(`{"foo": "/foo", "bar": "/bar"}`), n, false, urlRewriteRelationHandler)
 	assert.Equal(t, `{"foo": "/foo", "bar": "/bar"}`, string(result))
@@ -56,7 +56,7 @@ func TestTraverseJSONPreload(t *testing.T) {
 
 func TestTraverseJSONPreloadRewriteURL(t *testing.T) {
 	n := &node{}
-	n.importPointers(Preload, httpsfv.List{httpsfv.NewItem("/foo/*/rel"), httpsfv.NewItem("/bar/baz")})
+	n.importPointers(preload, httpsfv.List{httpsfv.NewItem("/foo/*/rel"), httpsfv.NewItem("/bar/baz")})
 
 	result := New(Options{}).traverseJSON([]byte(`{"foo": ["/a", "/b"], "bar": "/bar"}`), n, false, urlRewriteRelationHandler)
 	assert.Equal(t, `{"foo": ["/a?preload=%22%2Frel%22", "/b?preload=%22%2Frel%22"], "bar": "/bar?preload=%22%2Fbaz%22"}`, string(result))
@@ -64,8 +64,8 @@ func TestTraverseJSONPreloadRewriteURL(t *testing.T) {
 
 func TestTraverseJSONPreloadAndFieldsRewriteURL(t *testing.T) {
 	n := &node{}
-	n.importPointers(Preload, httpsfv.List{httpsfv.NewItem("/notexist"), httpsfv.NewItem("/foo/*/rel"), httpsfv.NewItem("/bar/baz"), httpsfv.NewItem("/baz")})
-	n.importPointers(Fields, httpsfv.List{httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/bar/baz"), httpsfv.NewItem("/notexist")})
+	n.importPointers(preload, httpsfv.List{httpsfv.NewItem("/notexist"), httpsfv.NewItem("/foo/*/rel"), httpsfv.NewItem("/bar/baz"), httpsfv.NewItem("/baz")})
+	n.importPointers(fields, httpsfv.List{httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/bar/baz"), httpsfv.NewItem("/notexist")})
 
 	result := New(Options{}).traverseJSON([]byte(`{"foo": ["/a", "/b"], "bar": "/bar", "baz": "/baz"}`), n, true, urlRewriteRelationHandler)
 	assert.Equal(t, `{"foo":["/a?preload=%22%2Frel%22","/b?preload=%22%2Frel%22"],"bar":"/bar?fields=%22%2Fbaz%22\u0026preload=%22%2Fbaz%22"}`, string(result))
