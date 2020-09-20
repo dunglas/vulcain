@@ -6,7 +6,7 @@ import (
 	"github.com/dunglas/httpsfv"
 )
 
-// node represend the a node in a JSON document
+// node represents a node of a JSON document
 type node struct {
 	preload       bool
 	preloadParams []*httpsfv.Params
@@ -21,9 +21,7 @@ type node struct {
 type _type int
 
 const (
-	// preload is a preloading action through query parameters or headers
 	preload _type = iota
-	// fields is a filtering action through query parameters or headers
 	fields
 )
 
@@ -48,7 +46,7 @@ func (n *node) importPointers(t _type, pointers httpsfv.List) {
 	}
 }
 
-// String converts the tree as a JSON pointer
+// String returns a JSON pointer
 func (n *node) String() string {
 	if n.parent == nil {
 		return "/"
@@ -111,7 +109,7 @@ func (n *node) hasChildren(t _type) bool {
 	return false
 }
 
-// httpList transforms the node an HTTP Structured Field List
+// httpList transforms the node in an HTTP Structured Field List
 func (n *node) httpList(t _type, prefix string) httpsfv.List {
 	if len(n.children) == 0 {
 		if prefix == "" {

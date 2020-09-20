@@ -10,12 +10,12 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	g := New(Options{MaxPushes: -1})
+	g := New()
 	assert.NotNil(t, g)
 }
 
 func TestParseRelation(t *testing.T) {
-	v := New(Options{OpenAPIFile: openapiFixture, MaxPushes: -1})
+	v := New(WithOpenAPIFile(openapiFixture))
 
 	u, _ := url.Parse("/oa/books/123")
 
@@ -27,7 +27,7 @@ func TestParseRelation(t *testing.T) {
 }
 
 func TestCanApply(t *testing.T) {
-	v := New(Options{})
+	v := New()
 	assert.False(t, v.CanApply(
 		&httptest.ResponseRecorder{},
 		&http.Request{URL: &url.URL{}},

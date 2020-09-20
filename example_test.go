@@ -39,7 +39,7 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	vulcain := vulcain.New(vulcain.Options{MaxPushes: -1})
+	vulcain := vulcain.New()
 
 	rpHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rp := httputil.NewSingleHostReverseProxy(rpURL)

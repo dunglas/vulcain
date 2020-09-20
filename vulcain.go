@@ -1,9 +1,9 @@
-// Package vulcain helps implementing the Vulcain protocol (https://vulcain.rocks).
+// Package vulcain helps implementing the Vulcain protocol (https://vulcain.rocks) in Go projects.
 // It provides helper functions to parse HTTP requests containing "preload" and "fields" directives,
-// to extract and push using HTTP/2 Server Push the relations of a JSON document matched by the "preload" directive,
+// to extract and push the relations of a JSON document matched by the "preload" directive,
 // and to modify the JSON document according to both directives.
 //
-// The package can be used in conjunction with Go's httputil.ReverseProxy as well as in any HTTP handler.
+// This package can be used in any HTTP handler as well as with httputil.ReverseProxy.
 package vulcain
 
 import (
@@ -25,22 +25,40 @@ var (
 	preferRe = regexp.MustCompile(`\s*selector="?json-pointer"?`)
 )
 
-// Options allows to set the configuration
-type Options struct {
-	// OpenAPIFile contains the path to an OpenAPI definition (in YAML or JSON) documenting the relation between resources
-	// This is useful only for non-hypermedia APIs
-	OpenAPIFile string
+// Option instances allow to configure the library
+type Option func(o *opt)
 
-	// MaxPushes is the maximum number of resources to push
-	// Set MaxPushes to -1 to disable the limit
-	MaxPushes int
-
-	// Logger is the logger to use
-	Logger *zap.Logger
+// WithOpenAPIFile sets the path to an OpenAPI definition (in YAML or JSON) documenting the relation between resources
+// This option is only useful for non-hypermedia APIs
+func WithOpenAPIFile(openAPIFile string) func(*opt) {
+	return func(o *opt) {
+		o.openAPIFile = openAPIFile
+	}
 }
 
-// Vulcain parses and allow to modify the HTTP response according to the "preload" and "fields" directives extracted from the request
-// Use New to create a Vulcain instance
+// WithMaxPushes sets the maximum number of resources to push
+// There is no limit by default
+func WithMaxPushes(maxPushes int) func(*opt) {
+	return func(o *opt) {
+		o.maxPushes = maxPushes
+	}
+}
+
+// WithLogger sets the logger to use
+func WithLogger(logger *zap.Logger) func(*opt) {
+	return func(o *opt) {
+		o.logger = logger
+	}
+}
+
+type opt struct {
+	openAPIFile string
+	maxPushes   int
+	logger      *zap.Logger
+}
+
+// Vulcain is the entrypoint of the library
+// Use New() to create an instance
 type Vulcain struct {
 	pushers *pushers
 	openAPI *openAPI
@@ -48,21 +66,28 @@ type Vulcain struct {
 }
 
 // New creates a Vulcain instance
-func New(options Options) *Vulcain {
-	logger := options.Logger
-	if options.Logger == nil {
-		logger = zap.NewNop()
+func New(options ...Option) *Vulcain {
+	opt := &opt{
+		maxPushes: -1,
+	}
+
+	for _, o := range options {
+		o(opt)
+	}
+
+	if opt.logger == nil {
+		opt.logger = zap.NewNop()
 	}
 
 	var o *openAPI
-	if options.OpenAPIFile != "" {
-		o = newOpenAPI(options.OpenAPIFile, logger)
+	if opt.openAPIFile != "" {
+		o = newOpenAPI(opt.openAPIFile, opt.logger)
 	}
 
 	return &Vulcain{
-		&pushers{maxPushes: options.MaxPushes, pusherMap: make(map[string]*waitPusher), logger: logger},
+		&pushers{maxPushes: opt.maxPushes, pusherMap: make(map[string]*waitPusher), logger: opt.logger},
 		o,
-		logger,
+		opt.logger,
 	}
 }
 
@@ -106,8 +131,9 @@ func (v *Vulcain) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, rou
 	return v.openAPI.getRoute(url)
 }
 
-// CanApply checks is Vulcain's directives can be applied for this request and response
-// CanApply must always be called
+// CanApply checks if Vulcain's directives can be applied for this request and response
+// CanApply must always be called.
+// It marks relations matched by a selector but not pushable as handled.
 func (v *Vulcain) CanApply(rw http.ResponseWriter, req *http.Request, responseStatus int, responseHeaders http.Header) bool {
 	pusher := v.pushers.getPusherForRequest(rw, req)
 
@@ -148,11 +174,9 @@ func (v *Vulcain) CanApply(rw http.ResponseWriter, req *http.Request, responseSt
 	return false
 }
 
-// Apply pushes the requested relations and return rewrote response if necessary
-// The content of the HTTP response is not automatically modified,
-// it's the responsibility of the user to use the returned updated content.
-// On the other hand headers are automatically updated.
-// CanApply must always be called before Apply, or internal pushers will leak
+// Apply pushes the requested relations, modifies the response headers and returns a modified response to send to the client.
+// It's the responsibility of the caller to use the updated response body.
+// CanApply must always be called before Apply or Apply will hang if some relations cannot be pushed.
 func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, error) {
 	pusher := v.pushers.getPusherForRequest(rw, req)
 	f, p, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
