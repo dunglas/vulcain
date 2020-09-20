@@ -96,7 +96,7 @@ func (o *openAPI) generateLink(operationID, parameter, value string) string {
 		}
 	}
 
-	o.logger.Debug("peration not found in the OpenAPI specification", zap.String("operationID", operationID))
+	o.logger.Debug("operation not found in the OpenAPI specification", zap.String("operationID", operationID))
 
 	return ""
 }

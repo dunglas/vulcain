@@ -28,7 +28,7 @@ var (
 // Option instances allow to configure the library
 type Option func(o *opt)
 
-// WithOpenAPIFile sets the path to an OpenAPI definition (in YAML or JSON) documenting the relation between resources
+// WithOpenAPIFile sets the path to an OpenAPI definition (in YAML or JSON) documenting the relations between resources
 // This option is only useful for non-hypermedia APIs
 func WithOpenAPIFile(openAPIFile string) func(*opt) {
 	return func(o *opt) {
