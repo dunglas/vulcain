@@ -47,7 +47,9 @@ jobs:
       - name: Install project dependencies
         run: go get
       - name: Build
-        run: go build
+        run: |
+          go version
+          go build
       - name: Install test dependencies
         run: |
           wget -qO - https://raw.githubusercontent.com/composer/getcomposer.org/fb22b78362d31c0d2bf516d1f8cdfd2745caa431/web/installer | php -- --install-dir=/usr/local/bin --filename=composer --quiet
