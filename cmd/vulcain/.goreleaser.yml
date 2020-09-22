@@ -14,6 +14,9 @@ builds:
     - amd64
     - arm
     - arm64
+  ignore:
+    - goos: darwin
+      goarch: 386
 archives:
   -  
     replacements:
@@ -23,9 +26,9 @@ archives:
       386: i386
       amd64: x86_64
     files:
-    - COPYRIGHT
-    - LICENSE
-    - README.md
+    - ../../COPYRIGHT
+    - ../../LICENSE
+    - ../../README.md
     format_overrides:
     - goos: windows
       format: zip
