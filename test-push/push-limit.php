@@ -10,9 +10,8 @@ require __DIR__ . '/tester.php';
 
 assertRequests([
     ['/books.jsonld', ['headers' => ['Preload' => '"/hydra:member/*/author"']]],
-], [
-    'Queueing pushed response: "' . GATEWAY_URL . '/books/1.jsonld"',
-    'Queueing pushed response: "' . GATEWAY_URL . '/books/2.jsonld"',
-    'Request: "GET ' . GATEWAY_URL . '/books.jsonld"',
-    'Response: "200 ' . GATEWAY_URL . '/books.jsonld"',
-]);
+], function (string $logs): int {
+    $nb = preg_match_all('/Queueing pushed response/', $logs);
+    
+    return $nb == 2 ? 0 : $nb;
+});

@@ -9,16 +9,15 @@ env:
   GO111MODULE: 'on'
 
 jobs:
-  lint:
+  golangci:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-    - name: Check out code
-      uses: actions/checkout@v2
-    - name: Lint Go Code
-      uses: docker://golangci/golangci-lint:latest
-      with:
-        args: golangci-lint run ./... 
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
 
   test:
     name: Test (Go ${{ matrix.go }})
@@ -48,14 +47,16 @@ jobs:
       - name: Install project dependencies
         run: go get
       - name: Build
-        run: go build
+        run: |
+          go version
+          go build
       - name: Install test dependencies
         run: |
           wget -qO - https://raw.githubusercontent.com/composer/getcomposer.org/fb22b78362d31c0d2bf516d1f8cdfd2745caa431/web/installer | php -- --install-dir=/usr/local/bin --filename=composer --quiet
           composer install --no-progress --no-suggest --ansi
         working-directory: test-push
       - name: Test
-        run: go test -v -timeout 30s -coverprofile=cover.out github.com/dunglas/vulcain/gateway
+        run: go test -v -timeout 30s -coverprofile=cover.out github.com/dunglas/vulcain
       - name: Upload coverage results
         uses: codecov/codecov-action@v1
         with:

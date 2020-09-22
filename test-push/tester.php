@@ -22,7 +22,10 @@ function printResponse(ResponseInterface $response): void
     echo "\n-------\n";
 }
 
-function assertRequests(array $requests, array $expectedLogs)
+/**
+ * @param string[]|callable $expected
+ */
+function assertRequests(array $requests, $expected)
 {
     $logger = new class() extends AbstractLogger {
         public $logs = [];
@@ -46,11 +49,18 @@ function assertRequests(array $requests, array $expectedLogs)
         }
     }
 
-    echo implode("\n", $logger->logs) . "\n";
+    $logs = implode("\n", $logger->logs);
+    echo $logs . "\n";
 
-    sort($logger->logs);
-    if ($logger->logs !== $expectedLogs) {
-        fwrite(STDERR, (new Differ())->diff(implode("\n", $expectedLogs), implode("\n", $logger->logs)));
-        exit(1);
+    if (is_array($expected)) {
+        sort($logger->logs);
+        if ($logger->logs !== $expected) {
+            fwrite(STDERR, (new Differ())->diff(implode("\n", $expected), implode("\n", $logger->logs)));
+            exit(1);
+        }
+
+        exit(0);
     }
+
+    exit($expected($logs));
 }

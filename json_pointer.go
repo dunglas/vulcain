@@ -1,4 +1,4 @@
-package gateway
+package vulcain
 
 import (
 	"strings"
@@ -6,6 +6,7 @@ import (
 	"github.com/dunglas/httpsfv"
 )
 
+// node represents a node of a JSON document
 type node struct {
 	preload       bool
 	preloadParams []*httpsfv.Params
@@ -16,17 +17,16 @@ type node struct {
 	children      []*node
 }
 
-// Type is the type of operation to apply, can be Preload or Fields
-type Type int
+// _type is the type of operation to apply, can be Preload or Fields
+type _type int
 
 const (
-	// Preload is a preloading action through query parameters or headers
-	Preload Type = iota
-	// Fields is a filtering action through query parameters or headers
-	Fields
+	preload _type = iota
+	fields
 )
 
-func (n *node) importPointers(t Type, pointers httpsfv.List) {
+// importPointers imports JSON pointers in the tree
+func (n *node) importPointers(t _type, pointers httpsfv.List) {
 	for _, member := range pointers {
 		// Ignore invalid value
 		member, ok := member.(httpsfv.Item)
@@ -46,6 +46,7 @@ func (n *node) importPointers(t Type, pointers httpsfv.List) {
 	}
 }
 
+// String returns a JSON pointer
 func (n *node) String() string {
 	if n.parent == nil {
 		return "/"
@@ -61,7 +62,8 @@ func (n *node) String() string {
 	return s
 }
 
-func partsToTree(t Type, parts []string, root *node, params *httpsfv.Params) {
+// partsToTree transforms a splitted JSON pointer to a tree
+func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {
 	if len(parts) == 0 {
 		return
 	}
@@ -82,10 +84,10 @@ func partsToTree(t Type, parts []string, root *node, params *httpsfv.Params) {
 	}
 
 	switch t {
-	case Preload:
+	case preload:
 		child.preload = true
 		child.preloadParams = append(child.preloadParams, params)
-	case Fields:
+	case fields:
 		child.fields = true
 		child.fieldsParams = append(child.fieldsParams, params)
 	}
@@ -93,12 +95,13 @@ func partsToTree(t Type, parts []string, root *node, params *httpsfv.Params) {
 	partsToTree(t, parts[1:], child, params)
 }
 
-func (n *node) hasChildren(t Type) bool {
+// hasChildren checks if the node has at least a child of the given type
+func (n *node) hasChildren(t _type) bool {
 	for _, c := range n.children {
-		if t == Preload && c.preload {
+		if t == preload && c.preload {
 			return true
 		}
-		if t == Fields && c.fields {
+		if t == fields && c.fields {
 			return true
 		}
 	}
@@ -106,7 +109,8 @@ func (n *node) hasChildren(t Type) bool {
 	return false
 }
 
-func (n *node) httpList(t Type, prefix string) httpsfv.List {
+// httpList transforms the node in an HTTP Structured Field List
+func (n *node) httpList(t _type, prefix string) httpsfv.List {
 	if len(n.children) == 0 {
 		if prefix == "" {
 			return httpsfv.List{}
@@ -114,11 +118,11 @@ func (n *node) httpList(t Type, prefix string) httpsfv.List {
 
 		var list httpsfv.List
 		switch t {
-		case Preload:
+		case preload:
 			for _, params := range n.preloadParams {
 				list = append(list, httpsfv.Item{Value: prefix, Params: params})
 			}
-		case Fields:
+		case fields:
 			for _, params := range n.fieldsParams {
 				list = append(list, httpsfv.Item{Value: prefix, Params: params})
 			}
@@ -129,7 +133,7 @@ func (n *node) httpList(t Type, prefix string) httpsfv.List {
 
 	var list httpsfv.List
 	for _, c := range n.children {
-		if (t == Preload && !c.preload) || (t == Fields && !c.fields) {
+		if (t == preload && !c.preload) || (t == fields && !c.fields) {
 			continue
 		}
 

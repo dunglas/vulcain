@@ -1,4 +1,4 @@
-package gateway
+package vulcain
 
 import (
 	"net/url"
@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewOptionsFormNew(t *testing.T) {
+func TestNewOptionsFromEnv(t *testing.T) {
 	testEnv := map[string]string{
 		"UPSTREAM":      "http://example.com",
 		"MAX_PUSHES":    "-1",
@@ -31,7 +31,7 @@ func TestNewOptionsFormNew(t *testing.T) {
 
 	u, _ := url.Parse("http://example.com")
 	opts, err := NewOptionsFromEnv()
-	assert.Equal(t, &Options{
+	assert.Equal(t, &ServerOptions{
 		true,
 		"127.0.0.1:8080",
 		u,

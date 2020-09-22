@@ -1,21 +1,24 @@
-package gateway
+package vulcain
 
 import (
 	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
+const openapiFixture = "./fixtures/openapi.yaml"
+
 func TestNewOpenAPI(t *testing.T) {
-	assert.NotNil(t, newOpenAPI("../fixtures/openapi.yaml"))
+	assert.NotNil(t, newOpenAPI(openapiFixture, zap.NewNop()))
 	assert.Panics(t, func() {
-		newOpenAPI("notexists")
+		newOpenAPI("notexists", zap.NewNop())
 	})
 }
 
 func TestGetRoute(t *testing.T) {
-	oa := newOpenAPI("../fixtures/openapi.yaml")
+	oa := newOpenAPI(openapiFixture, zap.NewNop())
 
 	u, _ := url.Parse("/oa/books/123")
 	assert.NotNil(t, oa.getRoute(u))
@@ -25,7 +28,7 @@ func TestGetRoute(t *testing.T) {
 }
 
 func TestGetRelation(t *testing.T) {
-	oa := newOpenAPI("../fixtures/openapi.yaml")
+	oa := newOpenAPI(openapiFixture, zap.NewNop())
 
 	u, _ := url.Parse("/oa/books/123")
 	r := oa.getRelation(oa.getRoute(u), "/author", "456")
@@ -41,7 +44,7 @@ func TestGetRelation(t *testing.T) {
 }
 
 func TestGenerateLink(t *testing.T) {
-	oa := newOpenAPI("../fixtures/openapi.yaml")
+	oa := newOpenAPI(openapiFixture, zap.NewNop())
 	l := oa.generateLink("notexists", "nestor", "makhno")
 	assert.Equal(t, "", l)
 }
