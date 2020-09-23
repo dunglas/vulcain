@@ -22,12 +22,12 @@ Install the dependencies:
 
 Run the server:
 
-    $ go run main.go
+    $ go run cmd/vulcain/main.go
 
 Run the fixture API:
 
     # You must run the server too
-    $ cd fixtures
+    $ cd fixtures/
     $ go run main.go
 
 Go to `https://localhost:3000` and accept the self-signed certificate.
