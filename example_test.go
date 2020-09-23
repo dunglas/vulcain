@@ -42,22 +42,31 @@ func Example() {
 	vulcain := vulcain.New()
 
 	rpHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		r := req.WithContext(vulcain.CreateRequestContext(rw, req))
+		var wait bool
+		defer func() { vulcain.Finish(r, wait) }()
+
 		rp := httputil.NewSingleHostReverseProxy(rpURL)
 		rp.ModifyResponse = func(resp *http.Response) error {
-			if !vulcain.CanApply(rw, req, resp.StatusCode, resp.Header) {
+			if !vulcain.IsValidRequest(r) || !vulcain.IsValidResponse(r, resp.StatusCode, resp.Header) {
 				return nil
 			}
 
-			newBody, err := vulcain.Apply(req, rw, resp.Body, resp.Header)
+			newBody, err := vulcain.Apply(r, rw, resp.Body, resp.Header)
 			if newBody == nil {
 				return err
 			}
 
+			wait = true
 			newBodyBuffer := bytes.NewBuffer(newBody)
 			resp.Body = ioutil.NopCloser(newBodyBuffer)
 
 			return nil
 		}
+		rp.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
+			wait = false
+		}
+
 		rp.ServeHTTP(rw, req)
 	})
 

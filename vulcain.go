@@ -7,6 +7,7 @@
 package vulcain
 
 import (
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -131,29 +132,30 @@ func (v *Vulcain) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, rou
 	return v.openAPI.getRoute(url)
 }
 
-// CanApply checks if Vulcain's directives can be applied for this request and response
-// CanApply must always be called.
-// It marks relations matched by a selector but not pushable as handled.
-func (v *Vulcain) CanApply(rw http.ResponseWriter, req *http.Request, responseStatus int, responseHeaders http.Header) bool {
-	pusher := v.pushers.getPusherForRequest(rw, req)
+// CreateRequestContext assign the waitPusher used by other functions to the request context.
+// CreateRequestContext must always be called first.
+func (v *Vulcain) CreateRequestContext(rw http.ResponseWriter, req *http.Request) context.Context {
+	return context.WithValue(req.Context(), ctxKey{}, v.pushers.getPusherForRequest(rw, req))
+}
 
+// IsValidRequest tells if this request contains at least one Vulcain directive.
+// IsValidRequest must always be called before Apply.
+func (v *Vulcain) IsValidRequest(req *http.Request) bool {
+	query := req.URL.Query()
+
+	// No Vulcain hints: don't modify the response
+	return req.Header.Get("Preload") != "" ||
+		req.Header.Get("Fields") != "" ||
+		query.Get("preload") != "" ||
+		query.Get("fields") != ""
+}
+
+// IsValidResponse checks if Apply will be able to deal with this response.
+func (v *Vulcain) IsValidResponse(req *http.Request, responseStatus int, responseHeaders http.Header) bool {
 	// Not a success, or not JSON: don't modify the response
 	if responseStatus < 200 ||
 		responseStatus > 300 ||
 		!jsonRe.MatchString(responseHeaders.Get("Content-Type")) {
-		v.pushers.finish(req, pusher)
-
-		return false
-	}
-
-	query := req.URL.Query()
-
-	// No Vulcain hints: don't modify the response
-	if req.Header.Get("Preload") == "" &&
-		req.Header.Get("Fields") == "" &&
-		query.Get("preload") == "" &&
-		query.Get("fields") == "" {
-		v.pushers.finish(req, pusher)
 
 		return false
 	}
@@ -169,16 +171,13 @@ func (v *Vulcain) CanApply(rw http.ResponseWriter, req *http.Request, responseSt
 		}
 	}
 
-	v.pushers.finish(req, pusher)
-
 	return false
 }
 
 // Apply pushes the requested relations, modifies the response headers and returns a modified response to send to the client.
 // It's the responsibility of the caller to use the updated response body.
-// CanApply must always be called before Apply or Apply will hang if some relations cannot be pushed.
+// Apply must not be called if IsValidRequest or IsValidResponse return false.
 func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, error) {
-	pusher := v.pushers.getPusherForRequest(rw, req)
 	f, p, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
 
 	currentBody, err := ioutil.ReadAll(responseBody)
@@ -206,14 +205,14 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 			return ""
 		}
 
-		// Never rewrite values when using OpenAPI, use header instead of query parameters
+		// Never rewrite values when using OpenAPI, use headers instead of query parameters
 		if (preloadQuery || fieldsQuery) && !useOA {
 			urlRewriter(u, n)
 			newValue = u.String()
 		}
 
 		if n.preload {
-			addPreloadToVary = !v.push(u, pusher, req, responseHeaders, n, preloadHeader, fieldsHeader)
+			addPreloadToVary = !v.push(u, req, responseHeaders, n, preloadHeader, fieldsHeader)
 		}
 
 		return newValue
@@ -227,21 +226,28 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		responseHeaders.Add("Vary", "Preload")
 	}
 
-	v.pushers.finish(req, pusher)
-
 	return newBody, nil
 }
 
-// addPreloadHeader sets preload Link rel=preload headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/)
+// Finish cleanups the waitPusher and, if it's the explicit response, waits for all PUSH_PROMISEs to be sent before returning.
+// Finish must always be called, even if IsValidRequest or IsValidResponse returns false.
+// If the current response is the explicit one and wait is false, then the body is sent instantly, even if all PUSH_PROMISEs haven't been sent yet.
+func (v *Vulcain) Finish(req *http.Request, wait bool) {
+	v.pushers.finish(req, wait)
+}
+
+// addPreloadHeader sets preload Link rel=preload headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/).
 func (v *Vulcain) addPreloadHeader(h http.Header, link string) {
 	h.Add("Link", "<"+link+">; rel=preload; as=fetch")
 	v.logger.Debug("link preload header added", zap.String("relation", link))
 }
 
-// push pushes a relation or add a Link rel=preload header as a fallback
+// push pushes a relation or adds a Link rel=preload header as a fallback.
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 // TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
-func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
+func (v *Vulcain) push(u *url.URL, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
+	pusher := req.Context().Value(ctxKey{}).(*waitPusher)
+
 	url := u.String()
 	if pusher == nil || u.IsAbs() {
 		v.addPreloadHeader(newHeaders, url)
@@ -286,7 +292,7 @@ func (v *Vulcain) push(u *url.URL, pusher *waitPusher, req *http.Request, newHea
 	return true
 }
 
-// parseRelation returns the URL of a relation, using OpenAPI to build it if necessary
+// parseRelation returns the URL of a relation, using OpenAPI to build it if necessary.
 func (v *Vulcain) parseRelation(selector, rel string, oaRoute *openapi3filter.Route) (*url.URL, bool, error) {
 	var useOA bool
 	if oaRoute != nil {

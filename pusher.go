@@ -16,6 +16,8 @@ import (
 
 const internalRequestHeader = "Vulcain-Explicit-Request"
 
+type ctxKey struct{}
+
 // waitPusher pushes relations and allow to wait for all PUSH_PROMISE to be sent
 // From the RFC:
 //   The server SHOULD send PUSH_PROMISE (Section 6.6) frames prior to sending any frames that reference the promised responses.
@@ -106,7 +108,7 @@ func (p *pushers) remove(id string) {
 // Copyright (c) 2020 Kévin Dunglas
 // APGLv3 License
 
-// getPusherForRequest retrieve the pusher associated with the explicit request
+// getPusherForRequest retrieves the pusher associated with the explicit request
 func (p *pushers) getPusherForRequest(rw http.ResponseWriter, req *http.Request) (w *waitPusher) {
 	internalPusher, ok := rw.(http.Pusher)
 	if !ok {
@@ -116,37 +118,41 @@ func (p *pushers) getPusherForRequest(rw http.ResponseWriter, req *http.Request)
 
 	// Need https://github.com/golang/go/issues/20566 to get rid of this hack
 	explicitRequestID := req.Header.Get(internalRequestHeader)
-	if explicitRequestID != "" {
-		w = p.get(explicitRequestID)
-		if w == nil {
-			// Should not happen, is an attacker forging an evil request?
-			p.logger.Debug("pusher not found", zap.String("url", req.RequestURI), zap.String("explicitRequestID", explicitRequestID))
-			req.Header.Del(internalRequestHeader)
-			explicitRequestID = ""
-		}
-	}
-
 	if explicitRequestID == "" {
-		// Explicit request
+		// This is the explicit request, let's create a wait pusher
 		w = newWaitPusher(internalPusher, uuid.Must(uuid.NewV4()).String(), p.maxPushes)
 		p.add(w)
+
+		return w
 	}
 
-	return w
+	if w = p.get(explicitRequestID); w != nil {
+		return w
+	}
+
+	// Should not happen, is an attacker forging an evil request?
+	p.logger.Debug("pusher not found", zap.String("url", req.RequestURI), zap.String("explicitRequestID", explicitRequestID))
+	req.Header.Del(internalRequestHeader)
+
+	return nil
 }
 
-// finish waits for all PUSH_PROMISES to be sent before returning for the explicit request
-func (p *pushers) finish(req *http.Request, w *waitPusher) {
-	if w == nil {
+// finish waits for all PUSH_PROMISEs to be sent before returning for the explicit request.
+func (p *pushers) finish(req *http.Request, wait bool) {
+	pusher := req.Context().Value(ctxKey{}).(*waitPusher)
+	if pusher == nil {
 		return
 	}
 
 	if req.Header.Get(internalRequestHeader) != "" {
-		w.Done()
+		pusher.Done()
 		return
 	}
 
-	// Wait for subrequests to finish
-	w.Wait()
-	p.remove(w.id)
+	// Wait for subrequests to finish, except if it's an error to release resources as soon as possible
+	if wait {
+		pusher.Wait()
+	}
+
+	p.remove(pusher.id)
 }

@@ -61,13 +61,17 @@ type server struct {
 //
 // Deprecated: use the Caddy server module or the standalone library instead
 func (s *server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	r := req.WithContext(s.vulcain.CreateRequestContext(rw, req))
+	var wait bool
+	defer func() { s.vulcain.Finish(r, wait) }()
+
 	rp := httputil.NewSingleHostReverseProxy(s.options.Upstream)
 	rp.ModifyResponse = func(resp *http.Response) error {
-		if !s.vulcain.CanApply(rw, req, resp.StatusCode, resp.Header) {
+		if !s.vulcain.IsValidRequest(r) || !s.vulcain.IsValidResponse(r, resp.StatusCode, resp.Header) {
 			return nil
 		}
 
-		newBody, err := s.vulcain.Apply(req, rw, resp.Body, resp.Header)
+		newBody, err := s.vulcain.Apply(r, rw, resp.Body, resp.Header)
 		if newBody == nil {
 			return err
 		}
@@ -75,14 +79,18 @@ func (s *server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		newBodyBuffer := bytes.NewBuffer(newBody)
 		resp.Body = ioutil.NopCloser(newBodyBuffer)
 
+		wait = true
+
 		return nil
 	}
 	rp.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
+		wait = false
 		// Adapted from the default ErrorHandler
 		s.vulcain.logger.Error("http: proxy error", zap.Error(err))
 		rw.WriteHeader(http.StatusBadGateway)
 	}
 
+	// Set forwarded headers
 	proto := "https"
 	if req.TLS == nil {
 		proto = "http"

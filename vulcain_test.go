@@ -2,7 +2,6 @@ package vulcain
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -26,76 +25,78 @@ func TestParseRelation(t *testing.T) {
 	assert.Nil(t, u)
 }
 
-func TestCanApply(t *testing.T) {
+func TestIsValidRequest(t *testing.T) {
 	v := New()
-	assert.False(t, v.CanApply(
-		&httptest.ResponseRecorder{},
+
+	assert.False(t, v.IsValidRequest(&http.Request{URL: &url.URL{}}))
+	assert.True(t, v.IsValidRequest(&http.Request{URL: &url.URL{RawQuery: `preload="/foo"`}}))
+	assert.True(t, v.IsValidRequest(&http.Request{URL: &url.URL{RawQuery: `fields="/foo"`}}))
+	assert.True(t, v.IsValidRequest(&http.Request{
+		Header: http.Header{"Preload": []string{`"/foo"`}},
+		URL:    &url.URL{},
+	}))
+	assert.True(t, v.IsValidRequest(&http.Request{
+		Header: http.Header{"Fields": []string{`"/foo"`}},
+		URL:    &url.URL{},
+	}))
+}
+
+func TestIsValidResponse(t *testing.T) {
+	v := New()
+	assert.False(t, v.IsValidResponse(
 		&http.Request{URL: &url.URL{}},
 		200,
 		http.Header{"Content-Type": []string{"text/xml"}},
 	))
 
-	assert.False(t, v.CanApply(
-		&httptest.ResponseRecorder{},
-		&http.Request{URL: &url.URL{}},
-		200,
-		http.Header{"Content-Type": []string{"application/json"}},
-	))
-
-	assert.False(t, v.CanApply(
-		&httptest.ResponseRecorder{},
+	assert.False(t, v.IsValidResponse(
 		&http.Request{
 			URL:    &url.URL{},
-			Header: http.Header{"Preload": []string{`"foo"`}, "Prefer": []string{"selector=css"}},
+			Header: http.Header{"Preload": []string{`"/foo"`}, "Prefer": []string{"selector=css"}},
 		},
 		200,
 		http.Header{"Content-Type": []string{"application/json"}},
 	))
 
-	assert.False(t, v.CanApply(
-		&httptest.ResponseRecorder{},
+	assert.False(t, v.IsValidResponse(
 		&http.Request{
 			URL:    &url.URL{},
-			Header: http.Header{"Preload": []string{`"foo"`}, "Prefer": []string{"selector=css"}},
+			Header: http.Header{"Preload": []string{`"/foo"`}, "Prefer": []string{"selector=css"}},
 		},
 		500,
 		http.Header{"Content-Type": []string{"application/json"}},
 	))
 
-	assert.True(t, v.CanApply(
-		&httptest.ResponseRecorder{},
+	assert.True(t, v.IsValidResponse(
 		&http.Request{
 			URL:    &url.URL{},
-			Header: http.Header{"Preload": []string{`"foo"`}, "Prefer": []string{"selector=json-pointer"}},
+			Header: http.Header{"Preload": []string{`"/foo"`}, "Prefer": []string{"selector=json-pointer"}},
 		},
 		200,
 		http.Header{"Content-Type": []string{"application/json"}},
 	))
 
-	assert.True(t, v.CanApply(
-		&httptest.ResponseRecorder{},
+	assert.True(t, v.IsValidResponse(
 		&http.Request{
 			URL:    &url.URL{},
-			Header: http.Header{"Preload": []string{`"foo"`}},
+			Header: http.Header{"Preload": []string{`"/foo"`}},
 		},
 		200,
 		http.Header{"Content-Type": []string{"application/ld+json"}},
 	))
 
-	assert.True(t, v.CanApply(
-		&httptest.ResponseRecorder{},
+	assert.True(t, v.IsValidResponse(
 		&http.Request{
 			URL:    &url.URL{},
-			Header: http.Header{"Preload": []string{`"foo"`}},
+			Header: http.Header{"Preload": []string{`"/foo"`}},
 		},
 		200,
 		http.Header{"Content-Type": []string{"application/ld+json"}},
 	))
 
-	assert.True(t, v.CanApply(
-		&httptest.ResponseRecorder{},
+	assert.True(t, v.IsValidResponse(
 		&http.Request{
-			URL: &url.URL{RawQuery: `preload="foo"`},
+			URL: &url.URL{RawQuery: `preload="/foo"`},
 		},
 		200,
 		http.Header{"Content-Type": []string{"application/ld+json"}},
