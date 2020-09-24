@@ -12,7 +12,7 @@ It supports [hypermedia APIs](https://restfulapi.net/hateoas/) but also any "leg
 [![codecov](https://codecov.io/gh/dunglas/vulcain/branch/master/graph/badge.svg)](https://codecov.io/gh/dunglas/vulcain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dunglas/vulcain)](https://goreportcard.com/report/github.com/dunglas/vulcain)
 
-![Vulcain Schema](schemas/fields-header.png)
+![Vulcain Schema](schemas/vulcain.png)
 
 Grab What You Need... Burn The REST!
 
