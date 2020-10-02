@@ -9,6 +9,37 @@ Be sure to you have the right to do that (if you are a professional, ask your co
 
 If you include code from another project, please mention it in the Pull Request description and credit the original author.
 
+## Start a Demo API and Contribute to the Caddy Plugin
+
+Clone the project:
+
+    $ git clone https://github.com/dunglas/vulcain
+    $ cd vulcain
+
+Install the dependencies:
+
+    $ go get
+
+Run the server with [`xcaddy`](https://github.com/caddyserver/xcaddy):
+
+    $ cd caddy
+    $ CADDY_VERSION="v2.2.0-rc.3" PATH=".:$PATH" xcaddy run
+
+Run the fixture API:
+
+    # You must run the server too
+    $ cd ../fixtures/
+    $ go run main.go
+
+Go on `http://localhost:8081` and enjoy!
+The API is available on `https://localhost:3000`.
+
+An API using an OpenAPI mapping is available on `https://localhost:3000/oa/books.json`.
+
+To run the test suite:
+
+    $ go test -v -timeout 30s github.com/dunglas/vulcain/caddy
+
 ## Start a Demo API and Contribute to the Gateway Server
 
 Clone the project:
