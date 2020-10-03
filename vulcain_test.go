@@ -46,7 +46,7 @@ func TestIsValidResponse(t *testing.T) {
 	assert.False(t, v.IsValidResponse(
 		&http.Request{URL: &url.URL{}},
 		200,
-		http.Header{"Content-Type": []string{"text/xml"}},
+		http.Header{"Content-Type": []string{"text/xml"}, "Cache-Control": []string{"no-transform"}},
 	))
 
 	assert.False(t, v.IsValidResponse(
@@ -65,6 +65,15 @@ func TestIsValidResponse(t *testing.T) {
 		},
 		500,
 		http.Header{"Content-Type": []string{"application/json"}},
+	))
+
+	assert.False(t, v.IsValidResponse(
+		&http.Request{
+			URL:    &url.URL{},
+			Header: http.Header{"Preload": []string{`"/foo"`}, "Prefer": []string{"selector=json-pointer"}},
+		},
+		200,
+		http.Header{"Cache-Control": []string{"no-transform"}},
 	))
 
 	assert.True(t, v.IsValidResponse(
