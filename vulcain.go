@@ -153,7 +153,7 @@ func (v *Vulcain) IsValidRequest(req *http.Request) bool {
 
 // IsValidResponse checks if Apply will be able to deal with this response.
 func (v *Vulcain) IsValidResponse(req *http.Request, responseStatus int, responseHeaders http.Header) bool {
-	// Not a success,marked as no-transform or not JSON: don't modify the response
+	// Not a success, marked as no-transform or not JSON: don't modify the response
 	if responseStatus < 200 ||
 		responseStatus > 300 ||
 		!jsonRe.MatchString(responseHeaders.Get("Content-Type")) ||
