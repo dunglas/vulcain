@@ -23,7 +23,7 @@ Install the dependencies:
 Run the server with [`xcaddy`](https://github.com/caddyserver/xcaddy):
 
     $ cd caddy
-    $ CADDY_VERSION="v2.2.0-rc.3" PATH=".:$PATH" xcaddy run
+    $ PATH=".:$PATH" xcaddy run
 
 Run the fixture API:
 
@@ -74,25 +74,21 @@ To run the test suite:
 
 Preload all relations referenced in the `hydra:member`, then in the author relationship, but only include the title and the author of these relations:
 
-```
-curl https://localhost:3000/books.jsonld \
-    --get \
-    --data 'preload="/hydra:member/*/author"' \
-    --data 'fields="/hydra:member/*/author", "/hydra:member/*/title"' \
-    --verbose \
-    --insecure
-```
+    $ curl https://localhost:3000/books.jsonld \
+        --get \
+        --data 'preload="/hydra:member/*/author"' \
+        --data 'fields="/hydra:member/*/author", "/hydra:member/*/title"' \
+        --verbose \
+        --insecure
 
 Using headers:
 
-```
-curl https://localhost:3000/books.jsonld \
-    --get \
-    --header 'Preload: "/hydra:member/*/author"' \
-    --header 'Fields: "/hydra:member/*/author", "/hydra:member/*/title"' \
-    --verbose \
-    --insecure
-```
+    $ curl https://localhost:3000/books.jsonld \
+        --get \
+        --header 'Preload: "/hydra:member/*/author"' \
+        --header 'Fields: "/hydra:member/*/author", "/hydra:member/*/title"' \
+        --verbose \
+        --insecure
 
 ## Protocol
 

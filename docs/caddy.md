@@ -17,16 +17,17 @@ Example configuration:
 
 ```caddyfile
 {
-    order vulcain before request_header
-	experimental_http3 # optional, enables HTTP/3
+    experimental_http3 # optional, enables HTTP/3
 }
 
 my-site.com
 
-reverse_proxy my-api:8080 # all other handlers such as the static file server and custom handlers are also supported
-vulcain {
-    openapi_file my-openapi-description.yaml # optional
-    max_pushes 100 # optional
+route {
+    vulcain {
+        openapi_file my-openapi-description.yaml # optional
+        max_pushes 100 # optional
+    }
+    reverse_proxy my-api:8080 # all other handlers such as the static file server and custom handlers are also supported
 }
 ```
 
