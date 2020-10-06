@@ -28,7 +28,9 @@ var bufPool = sync.Pool{
 }
 
 type Vulcain struct {
+	// Path to an OpenAPI file documenting relations between resources (for non-hypermedia APIs)
 	OpenAPIFile string `json:"openapi_file,omitempty"`
+	// Maximum number of resources to push
 	MaxPushes   int    `json:"max_pushes,omitempty"`
 
 	vulcain *vulcain.Vulcain
@@ -105,7 +107,7 @@ func (v Vulcain) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhtt
 //
 //     vulcain {
 //         # path to the OpenAPI file describing the relations (for non-hypermedia APIs)
-//	       openapi_file <path>
+//         openapi_file <path>
 //         # Maximum number of pushes to do (-1 for unlimited)
 //         max_pushes -1
 //     }
