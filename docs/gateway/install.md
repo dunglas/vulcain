@@ -41,7 +41,7 @@ The value of the `ACME_HOSTS` environment variable must be updated to match your
 A Let's Encrypt TLS certificate will be automatically generated.
 If you omit this variable, the server will be exposed using a not encrypted HTTP connection, so you will not be able to use Server Push.
 
-To compile the development version and register the demo page, see [../../CONTRIBUTING.md](CONTRIBUTING.md#hub).
+To compile the development version and register the demo page, see [CONTRIBUTING](../../CONTRIBUTING.md#start-a-demo-api-and-contribute-to-the-gateway-server).
 
 ## Docker Image
 

@@ -62,7 +62,7 @@ Preload: "/author"
 
 ## Creating Links from Collections
 
-The Vulcain Gateway Sever supports the [Extended JSON Pointer syntax](../../spec/vulcain.md#extended-json-pointer) to create links between elements of a collection and a related resource:
+The Vulcain Gateway Server supports the [Extended JSON Pointer syntax](../../spec/vulcain.md#extended-json-pointer) to create links between elements of a collection and a related resource:
 
 `/books`
 
