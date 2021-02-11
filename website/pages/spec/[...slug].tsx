@@ -1,6 +1,6 @@
 import React from 'react';
 import DocTemplate from '../../components/DocTemplate';
-import { getFiles } from '../../utils/getAllFolderFileNames';
+import { getMarkdownFilesList } from '../../utils/getMarkdownFilesList';
 import { GetStaticPaths, GetStaticProps } from 'next';
 import { getMarkdown } from '../../utils/getMarkdownByFilePath';
 
@@ -25,7 +25,7 @@ function cleanSpec(md: string) {
 const SpecPage: React.ComponentType<SpecPageProps> = ({ content }) => <DocTemplate content={cleanSpec(content)} />;
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const paths = await getFiles('spec');
+  const paths = await getMarkdownFilesList('spec');
   return {
     paths,
     fallback: false,
