@@ -1,0 +1,26 @@
+{
+  "parser": "babel-eslint",
+  "extends": ["plugin:react/recommended", "plugin:prettier/recommended", "plugin:jsx-a11y/recommended", "prettier/react"],
+  "rules": {
+    "react/react-in-jsx-scope": "off"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.tsx"],
+      "parser": "@typescript-eslint/parser",
+      "rules": {
+        "react/prop-types": "off",
+        "react/react-in-jsx-scope": "off",
+        "jsx-a11y/anchor-is-valid": "off",
+        "@typescript-eslint/no-unused-vars": ["error"]
+      },
+      "extends": [
+        "plugin:@typescript-eslint/recommended"
+      ]
+    }
+  ],
+  "globals": {
+    "React": "writable"
+  },
+  "plugins": ["react", "prettier"]
+}
