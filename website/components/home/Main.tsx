@@ -75,15 +75,11 @@ const Main: React.ComponentType = () => {
                 </Box>{' '}
                 but also any &quot;legacy&quot; API by documenting its relations{' '}
                 <Box fontWeight="fontWeightBold" component="span">
-                  <MuiLink
-                    href="https://github.com/dunglas/vulcain/blob/master/docs/gateway/openapi.md"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    underline="always"
-                    color="inherit"
-                  >
-                    using OpenAPI
-                  </MuiLink>
+                  <Link href="/docs/gateway/openapi" passHref>
+                    <MuiLink underline="always" color="inherit">
+                      using OpenAPI
+                    </MuiLink>
+                  </Link>
                 </Box>
                 .
               </Typography>

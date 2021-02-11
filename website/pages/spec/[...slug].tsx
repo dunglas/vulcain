@@ -34,7 +34,6 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const { slug } = params;
-  console.log(slug);
   const markdownPath = typeof slug === 'string' ? slug : slug.join('/');
   const content = getMarkdown('spec', markdownPath);
   // Pass data to our component props
