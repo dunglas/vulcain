@@ -1,7 +1,8 @@
 import React from 'react';
 import DocTemplate from '../../components/DocTemplate';
-import getAllMarkdownFiles from '../../utils/getGithubMarkdownFiles';
+import { getFiles } from '../../utils/getAllFolderFileNames';
 import { GetStaticPaths, GetStaticProps } from 'next';
+import { getMarkdown } from '../../utils/getMarkdownByFilePath';
 
 interface DocPageProps {
   content: string;
@@ -10,8 +11,7 @@ interface DocPageProps {
 const DocPage: React.ComponentType<DocPageProps> = ({ content }) => <DocTemplate content={content} />;
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const paths = await getAllMarkdownFiles('docs');
-
+  const paths = await getFiles('docs');
   return {
     paths,
     fallback: false,
@@ -21,11 +21,9 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const { slug } = params;
   const markdownPath = typeof slug === 'string' ? slug : slug.join('/');
-  const response = await fetch(
-    `https://raw.githubusercontent.com/${process.env.GITHUB_REPOSITORY}/main/docs/${markdownPath}.md`
-  );
-  const content = await response.text();
+  const content = getMarkdown('docs', markdownPath);
   // Pass data to our component props
-  return { props: { content, revalidate: 86400 } };
+  return { props: { content } };
 };
+
 export default DocPage;

@@ -60,6 +60,7 @@ const Markdown: React.ComponentType<MarkdownProps> = ({ source }) => {
       plugins={[gfm, tabs]}
       transformImageUri={(input) => {
         if (/^https?:/.test(input)) return input;
+        if (/^schemas\/vulcain_doc/.test(input)) return input.replace('schemas', '/static/schemas');
         return `https://raw.githubusercontent.com/dunglas/vulcain/master/${input}`;
       }}
       transformLinkUri={(input) => {
@@ -91,7 +92,7 @@ const Markdown: React.ComponentType<MarkdownProps> = ({ source }) => {
             </li>
           );
         },
-        image: (props) => <img className={classes.image} alt={props?.alt} {...props} />,
+        image: (props) => <img className={classes.image} alt={props?.alt} loading="lazy" {...props} />,
         link: ({ href, ...props }) => {
           if (!href) {
             return props.children;
