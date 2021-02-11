@@ -2,6 +2,7 @@ import React from 'react';
 import { Typography, Container, Grid, Theme } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { logos } from '../../data/references';
+import Link from 'next/link';
 
 const useStyles = makeStyles<Theme>((theme) => ({
   root: {
@@ -25,6 +26,13 @@ const useStyles = makeStyles<Theme>((theme) => ({
   logoImage: {
     maxWidth: '90%',
     height: 'auto',
+    filter: 'grayscale(100%)',
+    opacity: '0.5',
+    transition: 'all ease 0.3s',
+    '&:hover': {
+      opacity: 1,
+      filter: 'none',
+    },
   },
 }));
 
@@ -35,12 +43,22 @@ const References: React.ComponentType = () => {
     <section className={classes.root}>
       <Container>
         <Typography className={classes.title} align="center" variant="h3" color="textPrimary">
-          They use Vulcain
+          Implementations
         </Typography>
         <Grid container justify="center">
           {logos.map((logo) => (
             <Grid item xs={4} sm={3} md={2} key={logo.name}>
-              <img className={classes.logoImage} src={`static/references/${logo.logo}.png`} alt={logo.name} />
+              {logo.external ? (
+                <a href={logo.url} target="_blank" rel="noopener noreferrer">
+                  <img className={classes.logoImage} src={`static/references/${logo.logo}.png`} alt={logo.name} />
+                </a>
+              ) : (
+                <Link href={logo.url}>
+                  <a>
+                    <img className={classes.logoImage} src={`static/references/${logo.logo}.png`} alt={logo.name} />
+                  </a>
+                </Link>
+              )}
             </Grid>
           ))}
         </Grid>
