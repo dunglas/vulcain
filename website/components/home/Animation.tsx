@@ -126,16 +126,6 @@ const Animation: React.ComponentType = () => {
     };
   }, [timeline]);
 
-  useEffect(() => {
-    gsap.set('#step1', {
-      clipPath: 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)',
-    });
-    gsap.set('#api', { opacity: 0 });
-    gsap.set('#result', {
-      clipPath: 'polygon(80% 0%, 80% 0%, 80% 100%, 80% 100%)',
-    });
-  }, []);
-
   const intersection = useIntersection(container, {
     root: null,
     threshold: 0.5,

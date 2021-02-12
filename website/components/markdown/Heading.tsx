@@ -34,14 +34,21 @@ const Heading: React.ComponentType<HeadingProps> = ({ children, level }) => {
   }
 
   const title = text;
+  const schema = {
+    '@context': 'https://schema.org/',
+    '@type': 'TechArticle',
+    name: text,
+  };
 
-  //const title = t.props.children[0].props.children;
+  // create meta tags thanks to first title
   return (
     <>
       <Head>
         <title>{title} - Vulcain.rocks</title>
         <meta name="description" content={title} />
-        <meta name="og:title" content={`Vulcain.rocks: ${title}`} />
+        <meta name="og:title" content={`Vulcain.rocks - ${title}`} />
+        <meta name="twitter:title" content={`Vulcain.rocks - ${title}`} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       </Head>
       {t}
     </>

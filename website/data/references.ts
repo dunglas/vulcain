@@ -17,4 +17,16 @@ export const logos = [
     url: 'https://github.com/polc/rest-rs',
     external: true,
   },
+  {
+    name: 'Api Platform',
+    logo: 'api-platform',
+    url: 'https://api-platform.com/',
+    external: true,
+  },
+  {
+    name: 'Symfony',
+    logo: 'symfony',
+    url: 'https://github.com/symfony/symfony',
+    external: true,
+  },
 ];

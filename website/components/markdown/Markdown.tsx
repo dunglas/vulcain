@@ -55,6 +55,7 @@ const Markdown: React.ComponentType<MarkdownProps> = ({ source }) => {
   // adds proper href to RFC links
   const formattedSource = source.replace(/\[@!?(.*?)\]/gm, replacer);
 
+  console.log(source);
   return (
     <ReactMarkdown
       plugins={[gfm, tabs]}
