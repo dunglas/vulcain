@@ -2,6 +2,8 @@ module github.com/dunglas/vulcain/caddy
 
 go 1.15
 
+replace github.com/pselle/bar => /Users/dunglas/workspace/vulcain
+
 require (
 	cloud.google.com/go v0.68.0 // indirect
 	github.com/antlr/antlr4 v0.0.0-20201005172854-1145107684d8 // indirect

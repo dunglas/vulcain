@@ -27,11 +27,12 @@ var bufPool = sync.Pool{
 	},
 }
 
+// Vulcain add suport for the Vulcain protocol (fast and idiomatic client-driven REST APIs) as a Caddy module.
 type Vulcain struct {
 	// Path to an OpenAPI file documenting relations between resources (for non-hypermedia APIs)
 	OpenAPIFile string `json:"openapi_file,omitempty"`
 	// Maximum number of resources to push
-	MaxPushes   int    `json:"max_pushes,omitempty"`
+	MaxPushes int `json:"max_pushes,omitempty"`
 
 	vulcain *vulcain.Vulcain
 	logger  *zap.Logger
