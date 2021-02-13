@@ -32,7 +32,7 @@ type Option func(o *opt)
 
 // WithOpenAPIFile sets the path to an OpenAPI definition (in YAML or JSON) documenting the relations between resources
 // This option is only useful for non-hypermedia APIs
-func WithOpenAPIFile(openAPIFile string) func(*opt) {
+func WithOpenAPIFile(openAPIFile string) Option {
 	return func(o *opt) {
 		o.openAPIFile = openAPIFile
 	}
@@ -40,14 +40,14 @@ func WithOpenAPIFile(openAPIFile string) func(*opt) {
 
 // WithMaxPushes sets the maximum number of resources to push
 // There is no limit by default
-func WithMaxPushes(maxPushes int) func(*opt) {
+func WithMaxPushes(maxPushes int) Option {
 	return func(o *opt) {
 		o.maxPushes = maxPushes
 	}
 }
 
 // WithLogger sets the logger to use
-func WithLogger(logger *zap.Logger) func(*opt) {
+func WithLogger(logger *zap.Logger) Option {
 	return func(o *opt) {
 		o.logger = logger
 	}
