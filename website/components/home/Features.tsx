@@ -93,7 +93,7 @@ const FeatureItem: React.ComponentType<FeatureItemProps> = ({ title, Icon, class
       <div className={classes.featureIconCircle}>
         <Icon className={classes.featureIcon} />
       </div>
-      <Typography className={classes.featureTitle} align="center" variant="subtitle2" gutterBottom>
+      <Typography className={classes.featureTitle} align="center" variant="subtitle2" component="span" gutterBottom>
         {title}
       </Typography>
     </Grid>

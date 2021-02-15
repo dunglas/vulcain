@@ -28,7 +28,7 @@ const useStyles = makeStyles<Theme>((theme) => ({
     textShadow: 'white 0px 1px',
   },
   image: {
-    maxWidth: '800px',
+    maxWidth: '700px',
     margin: '0 auto',
     [theme.breakpoints.down('sm')]: {
       maxWidth: '100%',
@@ -55,7 +55,6 @@ const Markdown: React.ComponentType<MarkdownProps> = ({ source }) => {
   // adds proper href to RFC links
   const formattedSource = source.replace(/\[@!?(.*?)\]/gm, replacer);
 
-  console.log(source);
   return (
     <ReactMarkdown
       plugins={[gfm, tabs]}

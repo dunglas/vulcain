@@ -27,6 +27,7 @@ const useStyles = makeStyles<Theme>((theme) => ({
   },
   cardImage: {
     width: '100%',
+    height: 'auto',
   },
   cardCircle: {
     width: '100px',
@@ -109,11 +110,11 @@ const SupportCard: React.ComponentType<SupportCardProps> = ({ image, title, desc
         <CardContent className={classes.cardMain}>
           <Box px={2} display="flex" alignItems="center" justifyContent="center">
             <div className={classes.cardCircle}>
-              <img src={image} alt={title} className={classes.cardImage} />
+              <img src={image} alt={title} className={classes.cardImage} width="150" height="150" />
             </div>
           </Box>
           <Box py={2} className={classes.cardContent}>
-            <Typography variant="h5" gutterBottom className={classes.cardTitle}>
+            <Typography variant="h5" component="span" gutterBottom className={classes.cardTitle}>
               {title}
             </Typography>
             <Typography variant="body2" color="textSecondary">

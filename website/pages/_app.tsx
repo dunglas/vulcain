@@ -6,6 +6,7 @@ import * as gtag from '../utils/gtag';
 import { ThemeProvider } from '@material-ui/core/styles';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import theme from '../src/theme';
+import '../styles/fonts.css';
 
 const App: React.ComponentType<AppProps> = ({ Component, pageProps }) => {
   const router = useRouter();
@@ -38,11 +39,13 @@ const App: React.ComponentType<AppProps> = ({ Component, pageProps }) => {
     <>
       <Head>
         <title>Vulcain.rocks: Use HTTP/2 Server Push to create fast and idiomatic client-driven REST APIs</title>
-        <link href="https://fonts.googleapis.com/css?family=Oswald:200,300,400,700&display=swap" rel="stylesheet" />
-        <link
-          href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700,800,900&display=swap"
-          rel="stylesheet"
-        />
+        <link rel="preload" href="/fonts/roboto/roboto-v20-latin-regular.woff2" as="font" crossOrigin="" />
+        <link rel="preload" href="/fonts/roboto/roboto-v20-latin-500.woff2" as="font" crossOrigin="" />
+        <link rel="preload" href="/fonts/roboto/roboto-v20-latin-700.woff2" as="font" crossOrigin="" />
+        <link rel="preload" href="/fonts/montserrat/montserrat-v15-latin-200.woff2" as="font" crossOrigin="" />
+        <link rel="preload" href="/fonts/montserrat/montserrat-v15-latin-600.woff2" as="font" crossOrigin="" />
+        <link rel="preload" href="/fonts/montserrat/montserrat-v15-latin-800.woff2" as="font" crossOrigin="" />
+        <link rel="preload" href="/fonts/montserrat/montserrat-v15-latin-regular.woff2" as="font" crossOrigin="" />
         <meta
           name="description"
           content="Vulcain is a brand new protocol using HTTP/2 Server Push to create fast and idiomatic client-driven REST APIs."

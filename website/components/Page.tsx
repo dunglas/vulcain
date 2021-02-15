@@ -93,13 +93,20 @@ const Page: React.ComponentType<{ withFooter?: boolean }> = ({ children, withFoo
               <Grid container spacing={2} justify="space-evenly">
                 {footers.map((footer) => (
                   <Grid item xs key={footer.title}>
-                    <Typography variant="h6" color="inherit" gutterBottom>
+                    <Typography variant="h6" component="span" color="inherit" gutterBottom>
                       {footer.title}
                     </Typography>
                     {Object.entries(footer.content).map(([k, v]) => {
                       if (/^(https?|mailto):/.test(v)) {
                         return (
-                          <MUILink href={v} key={k} variant="subtitle1" color="inherit" className={classes.footerLink}>
+                          <MUILink
+                            href={v}
+                            key={k}
+                            variant="subtitle1"
+                            component="a"
+                            color="inherit"
+                            className={classes.footerLink}
+                          >
                             {k}
                           </MUILink>
                         );

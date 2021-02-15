@@ -10,11 +10,6 @@ const useStyles = makeStyles<Theme>((theme) => ({
     color: '#fff',
     padding: theme.spacing(8, 0),
   },
-  image: {
-    [theme.breakpoints.down('sm')]: {
-      paddingBottom: theme.spacing(3),
-    },
-  },
   button: {
     borderRadius: '40px',
     marginTop: theme.spacing(3),
@@ -39,11 +34,11 @@ const Main: React.ComponentType = () => {
     <section className={classes.root}>
       <Container>
         <Grid container alignItems="center" justify="center">
-          <Hidden xsDown initialWidth="md">
-            <Grid item xs={12} md={7} className={classes.image}>
+          <Grid item xs={12} md={7} className={classes.image}>
+            <Hidden xsDown>
               <Animation />
-            </Grid>
-          </Hidden>
+            </Hidden>
+          </Grid>
           <Grid item md={5}>
             <Box className={classes.content} p={1}>
               <Typography variant="h1" color="inherit">

@@ -13,19 +13,19 @@ const Header: React.ComponentType = () => {
 
   return (
     <>
-      <MuiLink href="https://mercure.rocks/" underline="none" variant="body2" className={classes.mercure}>
+      <MuiLink href="https://mercure.rocks/" underline="none" className={classes.mercure}>
         Discover
-        <img src="/static/logo-mercure.svg" alt="mercure" />| Real-Time with ease
+        <img src="/static/logo-mercure.svg" alt="mercure" width="85" height="16" />| Real-Time with ease
       </MuiLink>
       <AppBar position="sticky" color="default" className={classes.appBar}>
         <Toolbar className={classes.toolbar}>
           <Link href="/" passHref>
             <Button className={classes.logoLink} component="a">
-              <img className={classes.logo} src="/static/logo.svg" alt="Vulcain.rocks" />
+              <img className={classes.logo} src="/static/logo.svg" alt="Vulcain.rocks" width="176" height="40" />
             </Button>
           </Link>
           <a href="https://les-tilleuls.coop/en" target="_blank" rel="noopener noreferrer">
-            <img className={classes.sponsor} alt="sponsor" src="/static/sponsor.svg" />
+            <img className={classes.sponsor} alt="sponsor" src="/static/sponsor.svg" width="206" height="40" />
           </a>
           <Hidden smDown initialWidth="md">
             <Box px={1} flex={1} height="100%">
@@ -43,7 +43,7 @@ const Header: React.ComponentType = () => {
           </Hidden>
           <Hidden mdUp>
             <Box display="flex" flex={1} justifyContent="flex-end">
-              <IconButton onClick={() => setIsDrawerOpen(true)} className={classes.burgerButton}>
+              <IconButton aria-label="open-menu" onClick={() => setIsDrawerOpen(true)} className={classes.burgerButton}>
                 <MenuIcon fontSize="large" />
               </IconButton>
             </Box>

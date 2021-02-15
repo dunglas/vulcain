@@ -40,7 +40,7 @@ const theme = createMuiTheme({
     },
     h3: {
       fontSize: '2.5rem',
-      fontWeight: '900',
+      fontWeight: '800',
       fontFamily: "'Montserrat', sans-serif",
     },
     h5: {
@@ -61,7 +61,7 @@ const theme = createMuiTheme({
     MuiCssBaseline: {
       '@global': {
         ':target::before': {
-          content: '',
+          content: '""',
           display: 'block',
           height: '64px' /* fixed header height*/,
           margin: '-64px 0 0' /* negative fixed header height */,

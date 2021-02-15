@@ -50,12 +50,24 @@ const References: React.ComponentType = () => {
             <Grid item xs={4} sm={3} md={2} key={logo.name}>
               {logo.external ? (
                 <a href={logo.url} target="_blank" rel="noopener noreferrer">
-                  <img className={classes.logoImage} src={`static/references/${logo.logo}.png`} alt={logo.name} />
+                  <img
+                    className={classes.logoImage}
+                    src={`static/references/${logo.logo}.png`}
+                    alt={logo.name}
+                    width="300"
+                    height="110"
+                  />
                 </a>
               ) : (
                 <Link href={logo.url}>
                   <a>
-                    <img className={classes.logoImage} src={`static/references/${logo.logo}.png`} alt={logo.name} />
+                    <img
+                      className={classes.logoImage}
+                      src={`static/references/${logo.logo}.png`}
+                      alt={logo.name}
+                      width="300"
+                      height="110"
+                    />
                   </a>
                 </Link>
               )}
