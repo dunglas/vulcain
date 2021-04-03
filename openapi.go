@@ -1,18 +1,20 @@
 package vulcain
 
 import (
+	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/getkin/kin-openapi/routers"
+	"github.com/getkin/kin-openapi/routers/legacy"
 	"go.uber.org/zap"
 )
 
 // openAPI is used to find the URL of a relation using an OpenAPI description
 type openAPI struct {
 	swagger *openapi3.Swagger
-	router  *openapi3filter.Router
+	router  routers.Router
 	logger  *zap.Logger
 }
 
@@ -23,16 +25,21 @@ func newOpenAPI(file string, logger *zap.Logger) *openAPI {
 		panic(err)
 	}
 
+	router, err := legacy.NewRouter(swagger)
+	if err != nil {
+		panic(err)
+	}
+
 	return &openAPI{
 		swagger,
-		openapi3filter.NewRouter().WithSwagger(swagger),
+		router,
 		logger,
 	}
 }
 
-// getRoute gets the openapi3filter.Route instance related to the given URL
-func (o *openAPI) getRoute(url *url.URL) *openapi3filter.Route {
-	route, _, err := o.router.FindRoute("GET", url)
+// getRoute gets the routers.Route instance related to the given URL
+func (o *openAPI) getRoute(url *url.URL) *routers.Route {
+	route, _, err := o.router.FindRoute(&http.Request{Method: "GET", URL: url})
 	if err != nil {
 		o.logger.Debug("route not found in the OpenAPI specification", zap.Stringer("url", url), zap.Error(err))
 	}
@@ -42,7 +49,7 @@ func (o *openAPI) getRoute(url *url.URL) *openapi3filter.Route {
 
 // getRelation generated the link for the given parameters
 // TODO: support operationRef in addition to operationId
-func (o *openAPI) getRelation(r *openapi3filter.Route, selector, value string) string {
+func (o *openAPI) getRelation(r *routers.Route, selector, value string) string {
 	for code, responseRef := range r.Operation.Responses {
 		if (!strings.HasPrefix(code, "2")) || responseRef.Value == nil {
 			continue

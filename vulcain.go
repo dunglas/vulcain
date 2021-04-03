@@ -17,7 +17,8 @@ import (
 	"strconv"
 
 	"github.com/dunglas/httpsfv"
-	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/getkin/kin-openapi/routers"
+
 	"go.uber.org/zap"
 )
 
@@ -124,8 +125,8 @@ func extractFromRequest(req *http.Request) (fields, preload httpsfv.List, fields
 	return fields, preload, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery
 }
 
-// getOpenAPIRoute gets the openapi3filter.Route instance corresponding to the given URL
-func (v *Vulcain) getOpenAPIRoute(url *url.URL, route *openapi3filter.Route, routeTested bool) *openapi3filter.Route {
+// getOpenAPIRoute gets the routers.Route instance corresponding to the given URL
+func (v *Vulcain) getOpenAPIRoute(url *url.URL, route *routers.Route, routeTested bool) *routers.Route {
 	if routeTested || v.openAPI == nil {
 		return route
 	}
@@ -192,7 +193,7 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 	tree.importPointers(fields, f)
 
 	var (
-		oaRoute                         *openapi3filter.Route
+		oaRoute                         *routers.Route
 		oaRouteTested, addPreloadToVary bool
 	)
 	newBody := v.traverseJSON(currentBody, tree, len(f) > 0, func(n *node, val string) string {
@@ -295,7 +296,7 @@ func (v *Vulcain) push(u *url.URL, req *http.Request, newHeaders http.Header, n 
 }
 
 // parseRelation returns the URL of a relation, using OpenAPI to build it if necessary.
-func (v *Vulcain) parseRelation(selector, rel string, oaRoute *openapi3filter.Route) (*url.URL, bool, error) {
+func (v *Vulcain) parseRelation(selector, rel string, oaRoute *routers.Route) (*url.URL, bool, error) {
 	var useOA bool
 	if oaRoute != nil {
 		if oaRel := v.openAPI.getRelation(oaRoute, selector, rel); oaRel != "" {
