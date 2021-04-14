@@ -53,7 +53,7 @@ A Docker image is available on Docker Hub. The following command is enough to ge
         -p 443:443 \
         dunglas/vulcain
 
-The gateway is available on `http://localhost`.
+The gateway is available on `https://localhost`.
 
 In production, run:
 
