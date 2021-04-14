@@ -29,7 +29,7 @@ On Windows, start [PowerShell](https://docs.microsoft.com/en-us/powershell/), go
 
 The Windows Defender Firewall will ask you if you want to allow `vulcain.exe` to communicate through it. Allow it for both public and private networks. If you use an antivirus, or another firewall software, be sure to whitelist `vulcain.exe`. 
 
-The gateway is now available on `http://localhost:3000`.
+The gateway is now available on `https://localhost:3000`.
 
 To run it in production mode, and generate automatically a Let's Encrypt TLS certificate, just run the following command as root:
 
