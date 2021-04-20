@@ -19,7 +19,6 @@ require (
 	golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/net v0.0.0-20210420072503-d25e30425868
-	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/tools v0.0.0-20200304193943-95d2e580d8eb // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )
