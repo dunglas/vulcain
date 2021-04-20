@@ -7,7 +7,7 @@ An open source gateway server which you can put on top of **any existing web API
 It supports [hypermedia APIs](https://restfulapi.net/hateoas/) but also any "legacy" API by documenting its relations [using OpenAPI](docs/gateway/openapi.md).
 
 [![Plant Tree](https://img.shields.io/badge/dynamic/json?color=brightgreen&label=Plant%20Tree&query=%24.total&url=https%3A%2F%2Fpublic.offset.earth%2Fusers%2Ftreeware%2Ftrees)](https://plant.treeware.earth/dunglas/vulcain)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/dunglas/vulcain/gateway)](https://pkg.go.dev/github.com/dunglas/vulcain/gateway)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/dunglas/vulcain/gateway)](https://pkg.go.dev/github.com/dunglas/vulcain)
 [![Build Status](https://github.com/dunglas/vulcain/workflows/CI/badge.svg)](https://github.com/dunglas/vulcain/actions)
 [![codecov](https://codecov.io/gh/dunglas/vulcain/branch/master/graph/badge.svg)](https://codecov.io/gh/dunglas/vulcain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dunglas/vulcain)](https://goreportcard.com/report/github.com/dunglas/vulcain)
@@ -20,9 +20,10 @@ Grab What You Need... Burn The REST!
   * [Pushing Relations](#pushing-relations)
   * [Filtering Resources](#filtering-resources)
 * [Gateway Server](docs/gateway/)
-  * [Install](docs/gateway/install.md)
-  * [Configuration](docs/gateway/config.md)
+  * [Caddy Web Server Module](docs/caddy.md)
   * [Mapping a Non-Hypermedia API using OpenAPI](docs/gateway/openapi.md)
+  * [Legacy Standalone Server](docs/gateway/install.md)
+  * [Legacy Configuration](docs/gateway/config.md)
 * [Comparison with GraphQL and Other API Formats](docs/graphql.md)
 * [Using GraphQL as Query Language for Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain)
 * [Demo API](CONTRIBUTING.md)
