@@ -9,7 +9,7 @@ The Vulcain module for Caddy 2 allows to turn any existing web API in a one supp
 Use [xcaddy](https://github.com/caddyserver/xcaddy) to create a build of Caddy containing the Vulcain module.
 
 1. Install xcaddy
-2. Run: `xcaddy build --with github.com/dunglas/vulcain/caddy`
+2. Run: `xcaddy build --with github.com/dunglas/vulcain --with github.com/dunglas/vulcain/caddy`
 
 ## Configuration
 
@@ -17,7 +17,11 @@ Example configuration:
 
 ```caddyfile
 {
-    experimental_http3 # optional, enables HTTP/3
+    servers {
+        protocol {
+            experimental_http3
+        }
+    }
 }
 
 my-site.com
@@ -37,4 +41,4 @@ Just run `./caddy run`.
 
 ## Cache Handler
 
-Vulcain is best used with an HTTP cache server. The Caddy and the Vulcain team maintain together a distributed HTTP cache module supporting most of the RFC. To build Caddy with this module and Vulcain run: `xcaddy build --with github.com/dunglas/vulcain/caddy --with github.com/caddyserver/cache-handler`
+Vulcain is best used with an HTTP cache server. The Caddy and the Vulcain team maintain together a distributed HTTP cache module supporting most of the RFC. To build Caddy with this module and Vulcain run: `xcaddy build  --with github.com/dunglas/vulcain --with github.com/dunglas/vulcain/caddy --with github.com/caddyserver/cache-handler`
