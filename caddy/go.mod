@@ -8,9 +8,10 @@ require (
 	cloud.google.com/go v0.68.0 // indirect
 	github.com/antlr/antlr4 v0.0.0-20201005172854-1145107684d8 // indirect
 	github.com/caddyserver/caddy/v2 v2.3.0
+	github.com/caddyserver/certmagic v0.12.1-0.20201215190346-201f83a06067 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
-	github.com/dunglas/vulcain v0.2.2-0.20200924100508-9fc1c0b9ae2f
+	github.com/dunglas/vulcain v0.3.0
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
