@@ -24,6 +24,6 @@ Vulcain also plays very well with cache invalidation mechanisms such as [xkey](h
 ## Preventing to Push Resources Already in Cache (Cache-Digests and CASPer)
 
 When servers push resources that are already in the client cache, [the client will cancel this push](https://tools.ietf.org/html/rfc7540#section-8.2.2).
-However, it's even better to not send a push promise at all for resources already in cache. Do to so, the new [Cache-Digests for HTTP/2 RFC](https://httpwg.org/http-extensions/cache-digest.html) can be used. Alternatively, [CASPer](https://h2o.examp1e.net/configure/http2_directives.html#http2-casper) (cookie-based cache aware Server Push) can be used.
+However, it's even better to not send a push promise at all for resources already in cache. To do so, the new [Cache-Digests for HTTP/2 RFC](https://httpwg.org/http-extensions/cache-digest.html) can be used. Alternatively, [CASPer](https://h2o.examp1e.net/configure/http2_directives.html#http2-casper) (cookie-based cache aware Server Push) can be used.
 
 Note: the Gateway Server [doesn't support Cache Digests nor CASPer yet](https://github.com/dunglas/vulcain/issues/1).
