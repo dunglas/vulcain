@@ -1,6 +1,6 @@
 module github.com/dunglas/vulcain
 
-go 1.15
+go 1.16
 
 require (
 	github.com/dunglas/httpsfv v0.1.1
