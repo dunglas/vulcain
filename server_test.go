@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httptrace"
+	"net/textproto"
 	"net/url"
 	"os"
 	"os/exec"
@@ -86,16 +88,33 @@ func TestH2NoPush(t *testing.T) {
 	upstream, g, client := createTestingUtils("", -1)
 	defer upstream.Close()
 
+	var earlyHintCount int
+	trace := &httptrace.ClientTrace{
+		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
+			switch code {
+			case http.StatusEarlyHints:
+				assert.Equal(t, []string{"</books/1.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch", "</books/2.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch"}, header["Link"])
+				earlyHintCount++
+			}
+
+			return nil
+		},
+	}
+
+	req, _ := http.NewRequest("GET", gatewayURL+`/books.jsonld?fields="/hydra:member/*"&preload="/hydra:member/*/author"`, nil)
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+
 	// loop until the gateway is ready
 	var resp *http.Response
 	for resp == nil {
-		resp, _ = client.Get(gatewayURL + `/books.jsonld?fields="/hydra:member/*"&preload="/hydra:member/*/author"`)
+		resp, _ = client.Do(req)
 	}
 
 	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, []string{"</books/1.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch", "</books/2.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch"}, resp.Header["Link"])
 	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%22%2Fauthor%22","/books/2.jsonld?preload=%22%2Fauthor%22"]}`, string(b))
+	assert.Equal(t, 1, earlyHintCount)
 	_ = g.server.Shutdown(context.Background())
 }
 
@@ -241,14 +260,30 @@ func TestPreloadHeader(t *testing.T) {
 	defer upstream.Close()
 	defer gateway.Close()
 
+	// early hint should be sent when a preload header is set
+	var earlyHintCount int
+	trace := &httptrace.ClientTrace{
+		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
+			switch code {
+			case http.StatusEarlyHints:
+				assert.Equal(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, header["Link"])
+				earlyHintCount++
+			}
+
+			return nil
+		},
+	}
+
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", gateway.URL+"/books.jsonld", nil)
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 	req.Header.Add("Fields", `"/hydra:member"`)
 	req.Header.Add("Preload", `"/hydra:member/*"`)
 
 	resp, _ := client.Do(req)
 	b, _ := io.ReadAll(resp.Body)
 
+	assert.Equal(t, 1, earlyHintCount)
 	assert.Equal(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
 	assert.Equal(t, []string{"Fields", "Preload"}, resp.Header["Vary"])
 	assert.Equal(t, `{"hydra:member":[
