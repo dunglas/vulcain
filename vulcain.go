@@ -192,8 +192,8 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 	tree.importPointers(fields, f)
 
 	var (
-		oaRoute                         *routers.Route
-		oaRouteTested, addPreloadToVary bool
+		oaRoute                        *routers.Route
+		oaRouteTested, usePreloadLinks bool
 	)
 	newBody := v.traverseJSON(currentBody, tree, len(f) > 0, func(n *node, val string) string {
 		var (
@@ -214,7 +214,7 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		}
 
 		if n.preload {
-			addPreloadToVary = !v.push(u, req, responseHeaders, n, preloadHeader, fieldsHeader)
+			usePreloadLinks = !v.push(u, req, responseHeaders, n, preloadHeader, fieldsHeader)
 		}
 
 		return newValue
@@ -224,8 +224,16 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 	if fieldsHeader {
 		responseHeaders.Add("Vary", "Fields")
 	}
-	if addPreloadToVary {
+	if usePreloadLinks {
 		responseHeaders.Add("Vary", "Preload")
+
+		// forward preload links added by push() to a 103 Early Hints response
+		for _, link := range responseHeaders.Values("Link") {
+			rw.Header().Add("Link", link)
+		}
+		rw.WriteHeader(http.StatusEarlyHints)
+		// remove extra Link from final response headers
+		rw.Header().Del("Link")
 	}
 
 	return newBody, nil
@@ -246,7 +254,6 @@ func (v *Vulcain) addPreloadHeader(h http.Header, link string) {
 
 // push pushes a relation or adds a Link rel=preload header as a fallback.
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
-// TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
 func (v *Vulcain) push(u *url.URL, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
 	pusher := req.Context().Value(ctxKey{}).(*waitPusher)
 
