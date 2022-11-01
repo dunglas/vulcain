@@ -38,6 +38,13 @@ func WithOpenAPIFile(openAPIFile string) Option {
 	}
 }
 
+// WithServerPush enables using HTTP/2 Server Push to push relations
+func WithServerPush(serverPush bool) Option {
+	return func(o *opt) {
+		o.serverPush = serverPush
+	}
+}
+
 // WithMaxPushes sets the maximum number of resources to push
 // There is no limit by default
 func WithMaxPushes(maxPushes int) Option {
@@ -55,6 +62,7 @@ func WithLogger(logger *zap.Logger) Option {
 
 type opt struct {
 	openAPIFile string
+	serverPush  bool
 	maxPushes   int
 	logger      *zap.Logger
 }
@@ -62,15 +70,17 @@ type opt struct {
 // Vulcain is the entrypoint of the library
 // Use New() to create an instance
 type Vulcain struct {
-	pushers *pushers
-	openAPI *openAPI
-	logger  *zap.Logger
+	serverPush bool
+	pushers    *pushers
+	openAPI    *openAPI
+	logger     *zap.Logger
 }
 
 // New creates a Vulcain instance
 func New(options ...Option) *Vulcain {
 	opt := &opt{
-		maxPushes: -1,
+		serverPush: false,
+		maxPushes:  -1,
 	}
 
 	for _, o := range options {
@@ -87,6 +97,7 @@ func New(options ...Option) *Vulcain {
 	}
 
 	return &Vulcain{
+		opt.serverPush,
 		&pushers{maxPushes: opt.maxPushes, pusherMap: make(map[string]*waitPusher), logger: opt.logger},
 		o,
 		opt.logger,
@@ -176,7 +187,9 @@ func (v *Vulcain) IsValidResponse(req *http.Request, responseStatus int, respons
 	return false
 }
 
-// Apply pushes the requested relations, modifies the response headers and returns a modified response to send to the client.
+// Apply modifies the response headers and returns a modified response to send to the client.
+// Additionally, it either sends a 103 Early Hints response including preload Links
+// or it pushes the requested relations using HTTP/2 Server Push if enabled (see WithServerPush)
 // It's the responsibility of the caller to use the updated response body.
 // Apply must not be called if IsValidRequest or IsValidResponse return false.
 func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, error) {
@@ -192,8 +205,9 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 	tree.importPointers(fields, f)
 
 	var (
-		oaRoute                        *routers.Route
-		oaRouteTested, usePreloadLinks bool
+		oaRoute *routers.Route
+		oaRouteTested,
+		usePreloadLinks bool
 	)
 	newBody := v.traverseJSON(currentBody, tree, len(f) > 0, func(n *node, val string) string {
 		var (
@@ -213,8 +227,12 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 			newValue = u.String()
 		}
 
+		usePreloadLinks = false
 		if n.preload {
-			usePreloadLinks = !v.push(u, req, responseHeaders, n, preloadHeader, fieldsHeader)
+			if !v.serverPush || !v.push(u, req, responseHeaders, n, preloadHeader, fieldsHeader) {
+				usePreloadLinks = true
+				v.addPreloadHeader(responseHeaders, u.String())
+			}
 		}
 
 		return newValue
@@ -224,10 +242,11 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 	if fieldsHeader {
 		responseHeaders.Add("Vary", "Fields")
 	}
+	// Server Push is disabled or unavailable, use Preloading
 	if usePreloadLinks {
 		responseHeaders.Add("Vary", "Preload")
 
-		// forward preload links added by push() to a 103 Early Hints response
+		// Hint the browser about the relations to preload with a 103 Early Hints response
 		for _, link := range responseHeaders.Values("Link") {
 			rw.Header().Add("Link", link)
 		}
@@ -252,14 +271,14 @@ func (v *Vulcain) addPreloadHeader(h http.Header, link string) {
 	v.logger.Debug("link preload header added", zap.String("relation", link))
 }
 
-// push pushes a relation or adds a Link rel=preload header as a fallback.
+// push pushes a relation using HTTP/2 Server Push
+// push must not be called if Vulcain.serverPush is false (i.e. Server Push is disabled)
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 func (v *Vulcain) push(u *url.URL, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
 	pusher := req.Context().Value(ctxKey{}).(*waitPusher)
 
 	url := u.String()
 	if pusher == nil || u.IsAbs() {
-		v.addPreloadHeader(newHeaders, url)
 		return false
 	}
 
@@ -291,7 +310,6 @@ func (v *Vulcain) push(u *url.URL, req *http.Request, newHeaders http.Header, n 
 			return true
 		}
 
-		v.addPreloadHeader(newHeaders, url)
 		v.logger.Debug("failed to push", zap.Stringer("node", n), zap.String("relation", url), zap.Error(err))
 
 		return false

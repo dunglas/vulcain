@@ -47,7 +47,7 @@ func NewServer(options *ServerOptions) *server {
 
 	return &server{
 		options: options,
-		vulcain: New(WithOpenAPIFile(options.OpenAPIFile), WithMaxPushes(options.MaxPushes), WithLogger(logger)),
+		vulcain: New(WithOpenAPIFile(options.OpenAPIFile), WithServerPush(options.ServerPush), WithMaxPushes(options.MaxPushes), WithLogger(logger)),
 	}
 }
 

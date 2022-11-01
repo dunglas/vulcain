@@ -31,6 +31,10 @@ var bufPool = sync.Pool{
 type Vulcain struct {
 	// Path to an OpenAPI file documenting relations between resources (for non-hypermedia APIs)
 	OpenAPIFile string `json:"openapi_file,omitempty"`
+
+	// Whether to use HTTP/2 Server Push or not
+	ServerPush bool `json:"server_push,omitempty"`
+
 	// Maximum number of resources to push
 	MaxPushes int `json:"max_pushes,omitempty"`
 
@@ -55,6 +59,7 @@ func (v *Vulcain) Provision(ctx caddy.Context) error {
 
 	v.vulcain = vulcain.New(
 		vulcain.WithOpenAPIFile(v.OpenAPIFile),
+		vulcain.WithServerPush(v.ServerPush),
 		vulcain.WithMaxPushes(v.MaxPushes),
 		vulcain.WithLogger(ctx.Logger(v)),
 	)
@@ -106,12 +111,12 @@ func (v Vulcain) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhtt
 
 // UnmarshalCaddyfile sets up the handler from Caddyfile tokens. Syntax:
 //
-//     vulcain {
-//         # path to the OpenAPI file describing the relations (for non-hypermedia APIs)
-//         openapi_file <path>
-//         # Maximum number of pushes to do (-1 for unlimited)
-//         max_pushes -1
-//     }
+//	vulcain {
+//	    # path to the OpenAPI file describing the relations (for non-hypermedia APIs)
+//	    openapi_file <path>
+//	    # Maximum number of pushes to do (-1 for unlimited)
+//	    max_pushes -1
+//	}
 func (v *Vulcain) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		for d.NextBlock(0) {
