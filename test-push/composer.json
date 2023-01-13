@@ -1,9 +1,8 @@
 {
     "require": {
-        "symfony/http-client": "^5.1",
-        "sebastian/diff": "^3.0"
-    },
-    "replace": {
-        "symfony/polyfill-php73": "*"
+        "php": ">=8.1",
+
+        "symfony/http-client": "^6.2.2",
+        "sebastian/diff": "^4.0.4"
     }
 }
