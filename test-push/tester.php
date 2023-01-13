@@ -25,12 +25,12 @@ function printResponse(ResponseInterface $response): void
 /**
  * @param string[]|callable $expected
  */
-function assertRequests(array $requests, $expected)
+function assertRequests(array $requests, array|callable $expected)
 {
     $logger = new class() extends AbstractLogger {
         public $logs = [];
 
-        public function log($level, $message, array $context = [])
+        public function log($level, \Stringable|string $message, array $context = []): void
         {
             $this->logs[] = $message;
         }

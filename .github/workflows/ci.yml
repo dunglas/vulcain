@@ -15,40 +15,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
         with:
-          go-version: '1.16'
+          go-version: '1.19'
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
-        with:
-          skip-go-installation: true
-          only-new-issues: true
+        uses: golangci/golangci-lint-action@v3
 
   test:
-    name: Test (Go ${{ matrix.go }})
+    name: Test
     runs-on: ubuntu-latest
-    container:
-      image: golang:${{ matrix.go }}-alpine
-    strategy:
-      matrix:
-        go:
-          - '1.16'
-      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install system packages
-        run: |
-          apk add \
-            git \
-            php7 \
-            php7-curl \
-            php7-iconv \
-            php7-json \
-            php7-mbstring \
-            php7-openssl \
-            php7-phar \
-            php7-zip \
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.19'
       - name: Install project dependencies
         run: go get
       - name: Build
@@ -56,9 +37,7 @@ jobs:
           go version
           go build
       - name: Install test dependencies
-        run: |
-          wget -qO - https://raw.githubusercontent.com/composer/getcomposer.org/fb22b78362d31c0d2bf516d1f8cdfd2745caa431/web/installer | php -- --install-dir=/usr/local/bin --filename=composer --quiet
-          composer install --no-progress --no-suggest --ansi
+        run: composer install --no-progress --no-suggest --ansi
         working-directory: test-push
       - name: Test
         run: go test -v -timeout 30s -coverprofile=cover.out github.com/dunglas/vulcain
