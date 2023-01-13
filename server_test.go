@@ -125,13 +125,15 @@ func TestH2Push(t *testing.T) {
 	defer upstream.Close()
 
 	for _, test := range []string{"fields-query", "fields-header", "preload-query", "preload-header", "fields-preload-query", "fields-preload-header"} {
-		cmd := exec.Command("./test-push/" + test + ".php")
-		cmd.Env = os.Environ()
-		cmd.Env = append(cmd.Env, "GATEWAY_URL="+gatewayURL)
-		stdoutStderr, err := cmd.CombinedOutput()
-		if !assert.NoError(t, err) {
-			t.Log(string(stdoutStderr))
-		}
+		t.Run(test, func(t *testing.T) {
+			cmd := exec.Command("./test-push/" + test + ".php")
+			cmd.Env = os.Environ()
+			cmd.Env = append(cmd.Env, "GATEWAY_URL="+gatewayURL)
+			stdoutStderr, err := cmd.CombinedOutput()
+			if !assert.NoError(t, err) {
+				t.Log(string(stdoutStderr))
+			}
+		})
 	}
 
 	_ = g.server.Shutdown(context.Background())
