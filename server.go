@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -77,7 +77,7 @@ func (s *server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		newBodyBuffer := bytes.NewBuffer(newBody)
-		resp.Body = ioutil.NopCloser(newBodyBuffer)
+		resp.Body = io.NopCloser(newBodyBuffer)
 
 		wait = true
 

@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -183,7 +182,7 @@ func (v *Vulcain) IsValidResponse(req *http.Request, responseStatus int, respons
 func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody io.Reader, responseHeaders http.Header) ([]byte, error) {
 	f, p, fieldsHeader, fieldsQuery, preloadHeader, preloadQuery := extractFromRequest(req)
 
-	currentBody, err := ioutil.ReadAll(responseBody)
+	currentBody, err := io.ReadAll(responseBody)
 	if err != nil {
 		return nil, err
 	}

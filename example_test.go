@@ -3,7 +3,7 @@ package vulcain_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -59,7 +59,7 @@ func Example() {
 
 			wait = true
 			newBodyBuffer := bytes.NewBuffer(newBody)
-			resp.Body = ioutil.NopCloser(newBodyBuffer)
+			resp.Body = io.NopCloser(newBodyBuffer)
 
 			return nil
 		}
@@ -78,7 +78,7 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}

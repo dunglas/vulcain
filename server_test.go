@@ -3,7 +3,7 @@ package vulcain
 import (
 	"context"
 	"crypto/tls"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -75,7 +75,7 @@ func TestForwardedHeaders(t *testing.T) {
 		resp, _ = client.Get(gatewayURL + "/forwarded")
 	}
 
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, "X-Forwarded-Host: 127.0.0.1:4343\nX-Forwarded-Proto: https\nX-Forwarded-For: 127.0.0.1", string(b))
 	_ = s.server.Shutdown(context.Background())
@@ -91,7 +91,7 @@ func TestH2NoPush(t *testing.T) {
 		resp, _ = client.Get(gatewayURL + `/books.jsonld?fields="/hydra:member/*"&preload="/hydra:member/*/author"`)
 	}
 
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, []string{"</books/1.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch", "</books/2.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch"}, resp.Header["Link"])
 	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%22%2Fauthor%22","/books/2.jsonld?preload=%22%2Fauthor%22"]}`, string(b))
@@ -111,7 +111,7 @@ func TestMultipleValues(t *testing.T) {
 		resp, _ = client.Do(req)
 	}
 
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, []string{"</authors/1.jsonld>; rel=preload; as=fetch", "</books/99.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
 	assert.Equal(t, `{"author":"/authors/1.jsonld","related":"/books/99.jsonld"}`, string(b))
@@ -183,7 +183,7 @@ func TestNotModified(t *testing.T) {
 	defer gateway.Close()
 
 	resp, _ := http.Get(gateway.URL + "/books.jsonld")
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, api.BooksContent, string(b))
 }
@@ -194,7 +194,7 @@ func TestFieldsQuery(t *testing.T) {
 	defer gateway.Close()
 
 	resp, _ := http.Get(gateway.URL + `/books.jsonld?fields="/@id"`)
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, `{"@id":"/books.jsonld"}`, string(b))
 }
@@ -209,7 +209,7 @@ func TestFieldsHeader(t *testing.T) {
 	req.Header.Add("Fields", `"/@id"`)
 
 	resp, _ := client.Do(req)
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, "Fields", resp.Header.Get("Vary"))
 	assert.Equal(t, `{"@id":"/books.jsonld"}`, string(b))
@@ -221,7 +221,7 @@ func TestPreloadQuery(t *testing.T) {
 	defer gateway.Close()
 
 	resp, _ := http.Get(gateway.URL + `/books.jsonld?fields="/hydra:member/*"&preload="/hydra:member/*/author"`)
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, []string{"</books/1.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch", "</books/2.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch"}, resp.Header["Link"])
 	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%22%2Fauthor%22","/books/2.jsonld?preload=%22%2Fauthor%22"]}`, string(b))
@@ -238,7 +238,7 @@ func TestPreloadHeader(t *testing.T) {
 	req.Header.Add("Preload", `"/hydra:member/*"`)
 
 	resp, _ := client.Do(req)
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
 	assert.Equal(t, []string{"Fields", "Preload"}, resp.Header["Vary"])

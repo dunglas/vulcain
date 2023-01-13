@@ -13,14 +13,14 @@ import (
 
 // openAPI is used to find the URL of a relation using an OpenAPI description
 type openAPI struct {
-	swagger *openapi3.Swagger
+	swagger *openapi3.T
 	router  routers.Router
 	logger  *zap.Logger
 }
 
 // newOpenAPI creates a ne openAPI instance
 func newOpenAPI(file string, logger *zap.Logger) *openAPI {
-	swagger, err := openapi3.NewSwaggerLoader().LoadSwaggerFromFile(file)
+	swagger, err := openapi3.NewLoader().LoadFromFile(file)
 	if err != nil {
 		panic(err)
 	}
