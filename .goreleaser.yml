@@ -3,6 +3,7 @@ before:
   - go mod download
 builds:
 -
+  dir: cmd/vulcain
   env:
     - CGO_ENABLED=0
   goos:
@@ -10,13 +11,13 @@ builds:
     - darwin
     - windows
   goarch:
-    - 386
+    - '386'
     - amd64
     - arm
     - arm64
   ignore:
     - goos: darwin
-      goarch: 386
+      goarch: '386'
 archives:
   -  
     replacements:
@@ -26,9 +27,9 @@ archives:
       386: i386
       amd64: x86_64
     files:
-    - ../../COPYRIGHT
-    - ../../LICENSE
-    - ../../README.md
+    - COPYRIGHT
+    - LICENSE
+    - README.md
     format_overrides:
     - goos: windows
       format: zip
