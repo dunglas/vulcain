@@ -214,26 +214,20 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		}
 
 		if n.preload {
-			usePreloadLinks = !v.push(u, req, responseHeaders, n, preloadHeader, fieldsHeader)
+			usePreloadLinks = !v.push(u, rw, req, responseHeaders, n, preloadHeader, fieldsHeader)
 		}
 
 		return newValue
 	})
 
+	if usePreloadLinks {
+		rw.WriteHeader(http.StatusEarlyHints)
+		responseHeaders.Add("Vary", "Preload")
+	}
+
 	responseHeaders.Set("Content-Length", strconv.Itoa(len(newBody)))
 	if fieldsHeader {
 		responseHeaders.Add("Vary", "Fields")
-	}
-	if usePreloadLinks {
-		responseHeaders.Add("Vary", "Preload")
-
-		// forward preload links added by push() to a 103 Early Hints response
-		for _, link := range responseHeaders.Values("Link") {
-			rw.Header().Add("Link", link)
-		}
-		rw.WriteHeader(http.StatusEarlyHints)
-		// remove extra Link from final response headers
-		rw.Header().Del("Link")
 	}
 
 	return newBody, nil
@@ -254,12 +248,13 @@ func (v *Vulcain) addPreloadHeader(h http.Header, link string) {
 
 // push pushes a relation or adds a Link rel=preload header as a fallback.
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
-func (v *Vulcain) push(u *url.URL, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
+func (v *Vulcain) push(u *url.URL, rw http.ResponseWriter, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
 	pusher := req.Context().Value(ctxKey{}).(*waitPusher)
 
 	url := u.String()
 	if pusher == nil || u.IsAbs() {
 		v.addPreloadHeader(newHeaders, url)
+
 		return false
 	}
 

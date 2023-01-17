@@ -113,9 +113,9 @@ func TestH2NoPush(t *testing.T) {
 
 	b, _ := io.ReadAll(resp.Body)
 
+	assert.Equal(t, 1, earlyHintCount)
 	assert.Equal(t, expectedLinkHeaders, resp.Header["Link"])
 	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%22%2Fauthor%22","/books/2.jsonld?preload=%22%2Fauthor%22"]}`, string(b))
-	assert.Equal(t, 1, earlyHintCount)
 	_ = g.server.Shutdown(context.Background())
 }
 
