@@ -87,12 +87,14 @@ func TestH2NoPush(t *testing.T) {
 	upstream, g, client := createTestingUtils("", -1)
 	defer upstream.Close()
 
+	expectedLinkHeaders := []string{"</books/1.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch", "</books/2.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch"}
+
 	var earlyHintCount int
 	trace := &httptrace.ClientTrace{
 		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
 			switch code {
 			case http.StatusEarlyHints:
-				assert.Equal(t, []string{"</books/1.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch", "</books/2.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch"}, header["Link"])
+				assert.Equal(t, expectedLinkHeaders, header["Link"])
 				earlyHintCount++
 			}
 
@@ -111,7 +113,7 @@ func TestH2NoPush(t *testing.T) {
 
 	b, _ := io.ReadAll(resp.Body)
 
-	assert.Equal(t, []string{"</books/1.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch", "</books/2.jsonld?preload=%22%2Fauthor%22>; rel=preload; as=fetch"}, resp.Header["Link"])
+	assert.Equal(t, expectedLinkHeaders, resp.Header["Link"])
 	assert.Equal(t, `{"hydra:member":["/books/1.jsonld?preload=%22%2Fauthor%22","/books/2.jsonld?preload=%22%2Fauthor%22"]}`, string(b))
 	assert.Equal(t, 1, earlyHintCount)
 	_ = g.server.Shutdown(context.Background())
@@ -253,13 +255,15 @@ func TestPreloadHeader(t *testing.T) {
 	defer upstream.Close()
 	defer gateway.Close()
 
+	expectedLinkHeaders := []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}
+
 	// early hint should be sent when a preload header is set
 	var earlyHintCount int
 	trace := &httptrace.ClientTrace{
 		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
 			switch code {
 			case http.StatusEarlyHints:
-				assert.Equal(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, header["Link"])
+				assert.Equal(t, expectedLinkHeaders, header["Link"])
 				earlyHintCount++
 			}
 
@@ -277,7 +281,7 @@ func TestPreloadHeader(t *testing.T) {
 	b, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, 1, earlyHintCount)
-	assert.Equal(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
+	assert.Equal(t, expectedLinkHeaders, resp.Header["Link"])
 	assert.Equal(t, []string{"Fields", "Preload"}, resp.Header["Vary"])
 	assert.Equal(t, `{"hydra:member":[
 		"/books/1.jsonld",
