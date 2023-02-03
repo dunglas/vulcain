@@ -19,6 +19,17 @@ func unescape(s string) string {
 	return strings.ReplaceAll(s, "~0", "~")
 }
 
+// espaceSJSONPath escapes a sjson path
+func espaceSJSONPath(s string) string {
+	// https://github.com/tidwall/sjson/blob/master/sjson.go#L47
+	s = strings.ReplaceAll(s, "|", "\\|")
+	s = strings.ReplaceAll(s, "#", "\\#")
+	s = strings.ReplaceAll(s, "@", "\\@")
+	s = strings.ReplaceAll(s, "*", "\\*")
+
+	return strings.ReplaceAll(s, "?", "\\?")
+}
+
 // urlRewriter rewrites an URL to propagate the "preload" and "fields" selectors to relations
 func urlRewriter(u *url.URL, n *node) {
 	p := n.httpList(preload, "")
@@ -102,7 +113,8 @@ func (v *Vulcain) traverseJSON(currentBody []byte, tree *node, filter bool, rela
 			continue
 		}
 
-		path := unescape(n.path)
+		path := espaceSJSONPath(unescape(n.path))
+
 		result := gjson.GetBytes(currentBody, path)
 		if result.Exists() {
 			rawBytes := v.traverseJSON(getBytes(result, currentBody), n, filter, relationHandler)

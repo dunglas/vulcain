@@ -4,13 +4,13 @@ go 1.19
 
 require (
 	github.com/dunglas/httpsfv v1.0.1
-	github.com/getkin/kin-openapi v0.112.0
-	github.com/gofrs/uuid v4.3.1+incompatible
+	github.com/getkin/kin-openapi v0.114.0
+	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/gorilla/handlers v1.5.1
 	github.com/joho/godotenv v1.3.0
 	github.com/stretchr/testify v1.8.1
 	github.com/tidwall/gjson v1.14.4
-	github.com/tidwall/sjson v1.1.7
+	github.com/tidwall/sjson v1.2.5
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.5.0
 	golang.org/x/net v0.5.0
@@ -25,6 +25,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
+	github.com/perimeterx/marshmallow v1.1.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
