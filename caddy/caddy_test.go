@@ -13,6 +13,8 @@ func TestVulcain(t *testing.T) {
 	{
 	  order vulcain before request_header
 
+	  skip_install_trust
+	  admin localhost:2999
 	  http_port     9080
 	  https_port    9443
 	}
