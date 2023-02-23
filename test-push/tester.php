@@ -5,6 +5,7 @@ require __DIR__ . '/vendor/autoload.php';
 use Psr\Log\AbstractLogger;
 use SebastianBergmann\Diff\Differ;
 use Symfony\Component\HttpClient\CurlHttpClient;
+use Symfony\Component\HttpClient\AmpHttpClient;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
 define('GATEWAY_URL', $_SERVER['GATEWAY_URL'] ?? 'https://localhost:3000');
@@ -36,7 +37,7 @@ function assertRequests(array $requests, array|callable $expected)
         }
     };
 
-    $client = new CurlHttpClient(['verify_peer' => false, 'verify_host' => false, 'headers' => ['Cookie' => 'myCookie=bar']], 6, 5);
+    $client = new AmpHttpClient(['verify_peer' => false, 'verify_host' => false, 'headers' => ['Cookie' => 'myCookie=bar']], null, 6, 5);
     $client->setLogger($logger);
 
     foreach ($requests as $request) {
