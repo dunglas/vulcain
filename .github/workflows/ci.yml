@@ -2,47 +2,59 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
+
+env:
+  GO111MODULE: 'on'
 
 jobs:
   golangci:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v4
         with:
-          go-version: '1.19'
+          go-version: '1.20'
+          cache-dependency-path: |
+            go.sum
+            caddy/go.sum
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
 
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+        uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v4
         with:
-          go-version: '1.19'
-      - name: Install project dependencies
-        run: go get
-      - name: Build
-        run: |
-          go version
-          go build
+          go-version: '1.20'
+          cache-dependency-path: |
+            go.sum
+            caddy/go.sum
+
       - name: Install test dependencies
         run: composer install --no-progress --no-suggest --ansi
         working-directory: test-push
+
       - name: Test
         run: go test -race -covermode atomic -coverprofile=cover.out github.com/dunglas/vulcain
+
       - name: Test Caddy module
         run: |
           go test -race -covermode atomic -coverprofile=cover.out -coverpkg=github.com/dunglas/vulcain
           sed '1d' cover.out >> ../cover.out
         working-directory: ./caddy
+
       - name: Upload coverage results
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
