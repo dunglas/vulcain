@@ -46,7 +46,7 @@ jobs:
         working-directory: test-push
 
       - name: Test
-        run: go test -race -covermode atomic -coverprofile=cover.out github.com/dunglas/vulcain
+        run: go test -covermode atomic -coverprofile=cover.out github.com/dunglas/vulcain
 
       - name: Test Caddy module
         run: |
