@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - '*'
+  pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   release:
@@ -39,6 +45,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: release --clean ${{ !startsWith(github.ref, 'refs/tags/v') && '--snapshot --skip-sign' || '' }}
+          args: release --clean ${{ !startsWith(github.ref, 'refs/tags/v') && '--snapshot --skip=sign' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
