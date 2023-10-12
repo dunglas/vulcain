@@ -1,6 +1,6 @@
 module github.com/dunglas/vulcain/caddy
 
-go 1.20
+go 1.21
 
 replace github.com/dunglas/vulcain => ../
 
