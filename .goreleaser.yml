@@ -1,38 +1,6 @@
 before:
   hooks:
-  - go mod download
-builds:
--
-  dir: cmd/vulcain
-  env:
-    - CGO_ENABLED=0
-  goos:
-    - linux
-    - darwin
-    - windows
-  goarch:
-    - '386'
-    - amd64
-    - arm
-    - arm64
-  ignore:
-    - goos: darwin
-      goarch: '386'
-archives:
-  -  
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
-    files:
-    - COPYRIGHT
-    - LICENSE
-    - README.md
-    format_overrides:
-    - goos: windows
-      format: zip
+  - go mod tidy
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -41,12 +9,56 @@ changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^build:"
+      - "^chore:"
+      - "^Merge"
+release:
+  prerelease: auto
+env:
+  - CGO_ENABLED=0
+builds:
+  - id: legacy
+    dir: cmd/vulcain
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - '386'
+      - amd64
+      - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: '386'
+archives:
+  - id: legacy
+    builds:
+      - legacy
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    files:
+      - COPYRIGHT
+      - LICENSE
+      - README.md
+    format_overrides:
+      - goos: windows
+        format: zip
 dockers:
--
-  image_templates:
-  - 'dunglas/vulcain:{{ .Tag }}'
-  - 'dunglas/vulcain:v{{ .Major }}'
-  - 'dunglas/vulcain:v{{ .Major }}.{{ .Minor }}'
-  - 'dunglas/vulcain:latest'
+  - ids:
+    - legacy
+    image_templates:
+    - 'dunglas/vulcain:{{ .Tag }}'
+    - 'dunglas/vulcain:v{{ .Major }}'
+    - 'dunglas/vulcain:v{{ .Major }}.{{ .Minor }}'
+    - 'dunglas/vulcain:latest'
