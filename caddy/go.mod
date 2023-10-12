@@ -13,7 +13,7 @@ replace (
 
 require (
 	github.com/caddyserver/caddy/v2 v2.7.5
-	github.com/dunglas/vulcain v0.4.4
+	github.com/dunglas/vulcain v0.5.1
 	go.uber.org/zap v1.26.0
 )
 
