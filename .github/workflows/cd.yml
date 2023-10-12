@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -35,10 +35,10 @@ jobs:
           echo "GORELEASER_CURRENT_TAG=$(awk 'NR==1 {print;exit}' <<< "$tags")"  >> "$GITHUB_ENV"
           echo "GORELEASER_PREVIOUS_TAG=$(awk 'NR==2 {print;exit}' <<< "$tags")"  >> "$GITHUB_ENV"
 
-      - name: Release
-        uses: goreleaser/goreleaser-action@v4
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: release --clean
+          args: release --clean ${{ !startsWith(github.ref, 'refs/tags/v') && '--snapshot --skip-sign' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
