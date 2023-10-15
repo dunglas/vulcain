@@ -253,8 +253,6 @@ func TestPreloadHeader(t *testing.T) {
 }
 
 func TestEarlyHints(t *testing.T) {
-	t.Skip("Ealy hints support is inconsistent with Go 1.19.")
-
 	upstream, gateway := createServers()
 	defer upstream.Close()
 	defer gateway.Close()
@@ -262,13 +260,12 @@ func TestEarlyHints(t *testing.T) {
 	expectedLinkHeaders := []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}
 
 	// early hint should be sent when a preload header is set
-	var earlyHintCount int
+	var earlyHintsCount int
 	trace := &httptrace.ClientTrace{
 		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
-			switch code {
-			case http.StatusEarlyHints:
-				assert.Equal(t, expectedLinkHeaders, header["Link"])
-				earlyHintCount++
+			if code == http.StatusEarlyHints {
+				assert.ElementsMatch(t, expectedLinkHeaders, header["Link"])
+				earlyHintsCount++
 			}
 
 			return nil
@@ -284,9 +281,9 @@ func TestEarlyHints(t *testing.T) {
 	resp, _ := client.Do(req)
 	b, _ := io.ReadAll(resp.Body)
 
-	assert.Equal(t, 1, earlyHintCount)
-	assert.Equal(t, expectedLinkHeaders, resp.Header["Link"])
-	assert.Equal(t, []string{"Fields", "Preload"}, resp.Header["Vary"])
+	assert.Equal(t, 1, earlyHintsCount)
+	assert.ElementsMatch(t, expectedLinkHeaders, resp.Header["Link"])
+	assert.ElementsMatch(t, []string{"Fields", "Preload"}, resp.Header["Vary"])
 	assert.Equal(t, `{"hydra:member":[
 		"/books/1.jsonld",
 		"/books/2.jsonld"

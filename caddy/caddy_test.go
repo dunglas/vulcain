@@ -8,8 +8,6 @@ import (
 )
 
 func TestVulcain(t *testing.T) {
-	t.Skip("caddytest is currently broken because of https://github.com/caddyserver/caddy/issues/5187")
-
 	tester := caddytest.NewTester(t)
 	tester.InitServer(` 
 	{
