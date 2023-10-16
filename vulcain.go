@@ -38,6 +38,19 @@ func WithOpenAPIFile(openAPIFile string) Option {
 	}
 }
 
+// WithEarlyHints instructs the gateway server to send Preload hints in 103 Early Hints response.
+// Enabling this setting is usually useless because the gateway server doesn't supports JSON streaming yet,
+// consequently the server will have to wait for the full JSON response to be received from upstream before being able
+// to compute the Link headers to send.
+// When the full response is available, we can send the final response directly.
+// Better send Early Hints responses as soon as possible, directly from the upstream application.
+// The proxy will forward them even if this option is not enabled.
+func WithEarlyHints() Option {
+	return func(o *opt) {
+		o.enableEarlyHints = true
+	}
+}
+
 // WithMaxPushes sets the maximum number of resources to push
 // There is no limit by default
 func WithMaxPushes(maxPushes int) Option {
@@ -54,17 +67,19 @@ func WithLogger(logger *zap.Logger) Option {
 }
 
 type opt struct {
-	openAPIFile string
-	maxPushes   int
-	logger      *zap.Logger
+	openAPIFile      string
+	enableEarlyHints bool
+	maxPushes        int
+	logger           *zap.Logger
 }
 
 // Vulcain is the entrypoint of the library
 // Use New() to create an instance
 type Vulcain struct {
-	pushers *pushers
-	openAPI *openAPI
-	logger  *zap.Logger
+	enableEarlyHints bool
+	pushers          *pushers
+	openAPI          *openAPI
+	logger           *zap.Logger
 }
 
 // New creates a Vulcain instance
@@ -87,6 +102,7 @@ func New(options ...Option) *Vulcain {
 	}
 
 	return &Vulcain{
+		opt.enableEarlyHints,
 		&pushers{maxPushes: opt.maxPushes, pusherMap: make(map[string]*waitPusher), logger: opt.logger},
 		o,
 		opt.logger,
@@ -221,18 +237,21 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 	})
 
 	if usePreloadLinks {
-		h := rw.Header()
+		if v.enableEarlyHints {
+			h := rw.Header()
 
-		// If responseHeaders is not the same as rw.Header() (e.g. when using the built-in reverse proxy)
-		// temporarly copy Link headers to send the 103 response
-		_, ok := h["Link"]
-		if !ok {
-			h["Link"] = responseHeaders["Link"]
+			// If responseHeaders is not the same as rw.Header() (e.g. when using the built-in reverse proxy)
+			// temporarly copy Link headers to send the 103 response
+			_, ok := h["Link"]
+			if !ok {
+				h["Link"] = responseHeaders["Link"]
+			}
+			rw.WriteHeader(http.StatusEarlyHints)
+			if !ok {
+				delete(h, "Link")
+			}
 		}
-		rw.WriteHeader(http.StatusEarlyHints)
-		if !ok {
-			delete(h, "Link")
-		}
+
 		responseHeaders.Add("Vary", "Preload")
 	}
 
@@ -252,19 +271,30 @@ func (v *Vulcain) Finish(req *http.Request, wait bool) {
 }
 
 // addPreloadHeader sets preload Link rel=preload headers as fallback when Server Push isn't available (https://www.w3.org/TR/preload/).
-func (v *Vulcain) addPreloadHeader(h http.Header, link string) {
-	h.Add("Link", "<"+link+">; rel=preload; as=fetch")
+func (v *Vulcain) addPreloadHeader(h http.Header, link string, nopush bool) {
+	var suffix string
+	if nopush {
+		suffix = "; nopush"
+	}
+
+	h.Add("Link", "<"+link+">; rel=preload; as=fetch"+suffix)
 	v.logger.Debug("link preload header added", zap.String("relation", link))
 }
 
 // push pushes a relation or adds a Link rel=preload header as a fallback.
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
 func (v *Vulcain) push(u *url.URL, rw http.ResponseWriter, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
-	pusher := req.Context().Value(ctxKey{}).(*waitPusher)
-
 	url := u.String()
-	if pusher == nil || u.IsAbs() {
-		v.addPreloadHeader(newHeaders, url)
+
+	if v.pushers.maxPushes == 0 || u.IsAbs() {
+		v.addPreloadHeader(newHeaders, url, true)
+
+		return false
+	}
+
+	pusher := req.Context().Value(ctxKey{}).(*waitPusher)
+	if pusher == nil {
+		v.addPreloadHeader(newHeaders, url, false)
 
 		return false
 	}
@@ -297,7 +327,7 @@ func (v *Vulcain) push(u *url.URL, rw http.ResponseWriter, req *http.Request, ne
 			return true
 		}
 
-		v.addPreloadHeader(newHeaders, url)
+		v.addPreloadHeader(newHeaders, url, false)
 		v.logger.Debug("failed to push", zap.Stringer("node", n), zap.String("relation", url), zap.Error(err))
 
 		return false

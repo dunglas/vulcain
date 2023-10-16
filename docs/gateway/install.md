@@ -1,11 +1,11 @@
 # Install The Gateway Server
 
+**This is the documentation of the legacy standalone Gateway Server. This server is deprecated and will be removed at some point. You should use [the Caddy module instead](caddy.md).**
+
 The Vulcain Gateway Server can be put in front of **any existing REST API** to transform it in a Vulcain-enabled API.
 It works with hypermedia APIs ([JSON-LD](https://json-ld.org), [JSON:API](https://jsonapi.org/), [HAL](https://tools.ietf.org/html/draft-kelly-json-hal), [Siren](https://github.com/kevinswiber/siren) ...) as well as [with other non-hypermedia APIs by configuring the server using a subset of the OpenAPI specification](openapi.md).
 
 Tip: the easiest way to create a hypermedia API is to use [the API Platform framework](https://api-platform.com) (by the same author than Vulcain).
-
-**The Gateway Server is still experimental**
 
 ## Prebuilt Binary
 
