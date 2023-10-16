@@ -45,9 +45,14 @@ func NewServer(options *ServerOptions) *server {
 		panic(err)
 	}
 
+	opt := []Option{WithOpenAPIFile(options.OpenAPIFile), WithMaxPushes(options.MaxPushes), WithLogger(logger)}
+	if options.EarlyHints {
+		opt = append(opt, WithEarlyHints())
+	}
+
 	return &server{
 		options: options,
-		vulcain: New(WithOpenAPIFile(options.OpenAPIFile), WithMaxPushes(options.MaxPushes), WithLogger(logger)),
+		vulcain: New(opt...),
 	}
 }
 

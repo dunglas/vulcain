@@ -16,6 +16,7 @@ type ServerOptions struct {
 	Debug        bool
 	Addr         string
 	Upstream     *url.URL
+	EarlyHints   bool
 	MaxPushes    int
 	AcmeHosts    []string
 	AcmeCertDir  string
@@ -60,10 +61,13 @@ func NewOptionsFromEnv() (*ServerOptions, error) {
 		}
 	}
 
+	earlyHints := os.Getenv("EARLY_HINTS")
+
 	o := &ServerOptions{
 		os.Getenv("DEBUG") == "1",
 		os.Getenv("ADDR"),
 		upstream,
+		earlyHints != "" && earlyHints != "0",
 		maxPushes,
 		splitVar(os.Getenv("ACME_HOSTS")),
 		os.Getenv("ACME_CERT_DIR"),

@@ -1,10 +1,10 @@
 <h1 align="center"><img src="vulcain.svg" alt="Vulcain: Use HTTP/2 Server Push to create fast and idiomatic client-driven REST APIs" title="Use HTTP/2 Server Push to create fast and idiomatic client-driven REST APIs"></h1>
 
-Vulcain is a brand new protocol using HTTP/2 Server Push to create fast and idiomatic **client-driven REST** APIs.
+Vulcain is a brand new protocol using Preload hints and the `103 Early Hints` status code to create fast and idiomatic **client-driven REST** APIs.
 
-An open source gateway server which you can put on top of **any existing web API** to instantly turn it into a Vulcain-compatible one is also provided!
+An open source gateway server (a module for the [Caddy web server](https://caddyserver.com)), which you can put on top of **any existing web API** to instantly turn it into a Vulcain-compatible API is also provided!
 
-It supports [hypermedia APIs](https://restfulapi.net/hateoas/) but also any "legacy" API by documenting its relations [using OpenAPI](docs/gateway/openapi.md).
+It supports [hypermedia APIs](https://restfulapi.net/hateoas/) (e.g. any API created with [API Platform](https://api-platform.com)) but also any "legacy" API by documenting its relations [using OpenAPI](docs/gateway/openapi.md).
 
 [![Plant Tree](https://img.shields.io/badge/dynamic/json?color=brightgreen&label=Plant%20Tree&query=%24.total&url=https%3A%2F%2Fpublic.offset.earth%2Fusers%2Ftreeware%2Ftrees)](https://plant.treeware.earth/dunglas/vulcain)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/dunglas/vulcain/gateway)](https://pkg.go.dev/github.com/dunglas/vulcain)
@@ -20,7 +20,7 @@ Grab What You Need... Burn The REST!
   * [Pushing Relations](#pushing-relations)
   * [Filtering Resources](#filtering-resources)
 * [Gateway Server](docs/gateway/)
-  * [Caddy Web Server Module](docs/caddy.md)
+  * [Caddy Web Server Module](docs/gateway/caddy.md)
   * [Mapping a Non-Hypermedia API using OpenAPI](docs/gateway/openapi.md)
   * [Legacy Standalone Server](docs/gateway/install.md)
   * [Legacy Configuration](docs/gateway/config.md)
@@ -33,7 +33,7 @@ Grab What You Need... Burn The REST!
 
 The protocol has been published as [an Internet Draft](https://datatracker.ietf.org/doc/draft-dunglas-vulcain/) that [is maintained in this repository](spec/vulcain.md).
 
-A reference, production-grade, implementation [**gateway server**](docs/gateway/install.md) is also available in this repository.
+A reference, production-grade, implementation [**gateway server**](docs/gateway/caddy.md) is also available in this repository.
 It's free software (AGPL) written in Go. A Docker image is provided.
 
 ## Introduction
@@ -90,14 +90,14 @@ Considering the following resources:
 }
 ```
 
-The `Preload` HTTP header introduced by Vulcain can be used to ask the server to immediately push resources related to the requested one using HTTP/2 Server Push:
+The `Preload` HTTP header introduced by Vulcain can be used to ask the server to immediately push resources related to the requested one using 103 Early Hints or HTTP/2 Server Push:
 
 ```http
 GET /books/ HTTP/2
 Preload: "/member/*/author"
 ```
 
-In addition to `/books`, a Vulcain server will use HTTP/2 Server Push to push the `/books/1`, `/books/2` and `/authors/1` resources!
+In addition to `/books`, a Vulcain server will push the `/books/1`, `/books/2` and `/authors/1` resources!
 
 Example in JavaScript:
 
@@ -112,14 +112,15 @@ const authorResp = await fetch(bookJSON.author);
 
 [Full example, including collections](fixtures/static/main.js), see also [use GraphQL as query language for Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain).
 
-Thanks to [HTTP/2 multiplexing](https://stackoverflow.com/a/36519379/1352334), pushed responses will be sent in parallel.
+Thanks to [HTTP/2+ multiplexing](https://stackoverflow.com/a/36519379/1352334), pushed responses will be sent in parallel.
 
 When the client will follow the links and issue a new HTTP request (for instance using `fetch()`), the corresponding response will already be in cache, and will be used instantly!
 
 For non-hypermedia APIs (when the identifier of the related resource is a simple string or int), [use an OpenAPI specification to configure links between resources](docs/gateway/openapi.md).
 Tip: the easiest way to create a hypermedia API is to use [the API Platform framework](https://api-platform.com) (by the same author as Vulcain).
 
-[More than 90% of users](https://caniuse.com/#feat=http2) have devices supporting HTTP/2. However, for the remaining 10%, and for cases where using HTTP/2 Server Push isn't allowed such as when resources are [served by different authorities](https://tools.ietf.org/html/rfc7540#section-10.1), Vulcain allows to gracefully fallback to [`preload` links](https://www.w3.org/TR/preload/), which can be used together with [the 103 status code](https://tools.ietf.org/html/rfc8297).
+When possible, we recommend using [Early Hints](https://tools.ietf.org/html/rfc8297) (the 103 HTTP status code) to push the relations.
+Vulcain allows to gracefully fallback to [`preload` links](https://www.w3.org/TR/preload/) in the headers of the final response or to [HTTP/2 Server Push](https://tools.ietf.org/html/rfc7540#section-10.1) when the 103 status code isn't supported.
 
 ### Query Parameter
 

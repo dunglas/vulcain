@@ -1,13 +1,13 @@
 {
     debug
+    order vulcain before request_header
 }
 
-localhost:3000
-
-route {
+localhost:3000 {
     vulcain {
         openapi_file ../../fixtures/openapi.yaml
         max_pushes 100
+        early_hints
     }
     reverse_proxy localhost:8080
 }

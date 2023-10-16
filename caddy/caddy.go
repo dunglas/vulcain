@@ -33,6 +33,8 @@ type Vulcain struct {
 	OpenAPIFile string `json:"openapi_file,omitempty"`
 	// Maximum number of resources to push
 	MaxPushes int `json:"max_pushes,omitempty"`
+	// To eable 103 Early Hints responses
+	EarlyHints bool `json:"early_hints,omitempty"`
 
 	vulcain *vulcain.Vulcain
 	logger  *zap.Logger
@@ -53,11 +55,17 @@ func (v *Vulcain) Provision(ctx caddy.Context) error {
 
 	v.logger = ctx.Logger(v)
 
-	v.vulcain = vulcain.New(
+	options := []vulcain.Option{
 		vulcain.WithOpenAPIFile(v.OpenAPIFile),
 		vulcain.WithMaxPushes(v.MaxPushes),
 		vulcain.WithLogger(ctx.Logger(v)),
-	)
+	}
+
+	if v.EarlyHints {
+		options = append(options, vulcain.WithEarlyHints())
+	}
+
+	v.vulcain = vulcain.New(options...)
 
 	return nil
 }
@@ -106,12 +114,12 @@ func (v Vulcain) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhtt
 
 // UnmarshalCaddyfile sets up the handler from Caddyfile tokens. Syntax:
 //
-//     vulcain {
-//         # path to the OpenAPI file describing the relations (for non-hypermedia APIs)
-//         openapi_file <path>
-//         # Maximum number of pushes to do (-1 for unlimited)
-//         max_pushes -1
-//     }
+//	vulcain {
+//	    # path to the OpenAPI file describing the relations (for non-hypermedia APIs)
+//	    openapi_file <path>
+//	    # Maximum number of pushes to do (-1 for unlimited)
+//	    max_pushes -1
+//	}
 func (v *Vulcain) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		for d.NextBlock(0) {
@@ -134,6 +142,9 @@ func (v *Vulcain) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 
 				v.MaxPushes = maxPushes
+
+			case "early_hints":
+				v.EarlyHints = true
 			}
 		}
 	}

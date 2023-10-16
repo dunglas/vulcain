@@ -12,6 +12,7 @@ import (
 func TestNewOptionsFromEnv(t *testing.T) {
 	testEnv := map[string]string{
 		"UPSTREAM":      "http://example.com",
+		"EARLY_HINTS":   "1",
 		"MAX_PUSHES":    "-1",
 		"ACME_CERT_DIR": "/tmp",
 		"ACME_HOSTS":    "example.com,example.org",
@@ -35,6 +36,7 @@ func TestNewOptionsFromEnv(t *testing.T) {
 		true,
 		"127.0.0.1:8080",
 		u,
+		true,
 		-1,
 		[]string{"example.com", "example.org"},
 		"/tmp",

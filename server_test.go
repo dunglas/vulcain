@@ -171,18 +171,18 @@ func TestH2PushOpenAPI(t *testing.T) {
 	_ = g.server.Shutdown(context.Background())
 }
 
-func createServers() (*httptest.Server, *httptest.Server) {
+func createServers(maxPushes int, earlyHints bool) (*httptest.Server, *httptest.Server) {
 	upstream := httptest.NewServer(&api.JSONLDHandler{})
 
 	upstreamURL, _ := url.Parse(upstream.URL)
-	s := NewServer(&ServerOptions{Upstream: upstreamURL})
+	s := NewServer(&ServerOptions{Upstream: upstreamURL, MaxPushes: maxPushes, EarlyHints: earlyHints})
 	gateway := httptest.NewServer(s)
 
 	return upstream, gateway
 }
 
 func TestNotModified(t *testing.T) {
-	upstream, gateway := createServers()
+	upstream, gateway := createServers(-1, false)
 	defer upstream.Close()
 	defer gateway.Close()
 
@@ -193,7 +193,7 @@ func TestNotModified(t *testing.T) {
 }
 
 func TestFieldsQuery(t *testing.T) {
-	upstream, gateway := createServers()
+	upstream, gateway := createServers(-1, false)
 	defer upstream.Close()
 	defer gateway.Close()
 
@@ -204,7 +204,7 @@ func TestFieldsQuery(t *testing.T) {
 }
 
 func TestFieldsHeader(t *testing.T) {
-	upstream, gateway := createServers()
+	upstream, gateway := createServers(-1, false)
 	defer upstream.Close()
 	defer gateway.Close()
 
@@ -220,7 +220,7 @@ func TestFieldsHeader(t *testing.T) {
 }
 
 func TestPreloadQuery(t *testing.T) {
-	upstream, gateway := createServers()
+	upstream, gateway := createServers(-1, false)
 	defer upstream.Close()
 	defer gateway.Close()
 
@@ -232,7 +232,7 @@ func TestPreloadQuery(t *testing.T) {
 }
 
 func TestPreloadHeader(t *testing.T) {
-	upstream, gateway := createServers()
+	upstream, gateway := createServers(-1, false)
 	defer upstream.Close()
 	defer gateway.Close()
 
@@ -252,8 +252,23 @@ func TestPreloadHeader(t *testing.T) {
 	]}`, string(b))
 }
 
+func TestPreloadHeaderNoPush(t *testing.T) {
+	upstream, gateway := createServers(0, false)
+	defer upstream.Close()
+	defer gateway.Close()
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", gateway.URL+"/books.jsonld", nil)
+	req.Header.Add("Preload", `"/hydra:member/*"`)
+
+	resp, _ := client.Do(req)
+
+	assert.ElementsMatch(t, []string{"</books/1.jsonld>; rel=preload; as=fetch; nopush", "</books/2.jsonld>; rel=preload; as=fetch; nopush"}, resp.Header["Link"])
+	assert.ElementsMatch(t, []string{"Preload"}, resp.Header["Vary"])
+}
+
 func TestEarlyHints(t *testing.T) {
-	upstream, gateway := createServers()
+	upstream, gateway := createServers(-1, true)
 	defer upstream.Close()
 	defer gateway.Close()
 
