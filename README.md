@@ -207,7 +207,7 @@ tl;dr:
 
 The Vulcain Gateway Server is licensed under [AGPL-3.0](LICENSE). This license implies that if you modify the Vulcain Gateway Server, you must share those modifications. However, the AGPL-3.0 license applies only to the gateway server itself, **not to software used behind the gateway**.
 
-For companies not wanting, or not able to use AGPL-3.0 licensed software, commercial licenses are also available. [Contact us for more information](mailto:kevin+vulcain@dunglas.fr).
+For companies not wanting, or not able to use AGPL-3.0 licensed software, commercial licenses are also available. [Contact us for more information](mailto:kevin+vulcain@dunglas.dev).
 
 ## Treeware
 
@@ -215,7 +215,7 @@ This package is [Treeware](https://treeware.earth). If you use it in production,
 
 ## Credits
 
-Created by [Kévin Dunglas](https://dunglas.fr). Sponsored by [Les-Tilleuls.coop](https://les-tilleuls.coop).
+Created by [Kévin Dunglas](https://dunglas.dev). Sponsored by [Les-Tilleuls.coop](https://les-tilleuls.coop).
 
 Some ideas and code used in Vulcain's reference implementation have been taken from [Hades](https://github.com/gabesullice/hades) by [Gabe Sullice](https://github.com/gabesullice), an HTTP/2 reverse proxy for JSON:API backend.
 

@@ -20,7 +20,7 @@ The main idea is to write GraphQL queries client-side, which will be converted i
 To do so, libraries such as [`apollo-link-rest`](https://www.apollographql.com/docs/link/links/rest/) can be used.
 Thanks to `apollo-link-rest` you can write your request in GraphQL, use all [the tools of the frontend ecosystem relying on GraphQL](https://github.com/chentsulin/awesome-graphql#clients), but let the library send REST requests to the Vulcain server to fulfill the GraphQL query.
 
-This approach also fixes [all the problems coming with using GraphQL server-side](https://dunglas.fr/2018/03/symfonylive-paris-slides-rest-vs-graphql-illustrated-examples-with-the-api-platform-framework/)!
+This approach also fixes [all the problems coming with using GraphQL server-side](https://dunglas.dev/2018/03/symfonylive-paris-slides-rest-vs-graphql-illustrated-examples-with-the-api-platform-framework/)!
 
 Note: a higher-level library dedicated to Vulcain is being written.
 
