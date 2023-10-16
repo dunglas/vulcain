@@ -7,6 +7,7 @@ function tabsPlugin() {
     return node?.children?.length === 1 && node.children[0].value === '[/tabs]';
   }
 
+  // Quick fix très très moche, à remplacer au plus vite
   function transformer(tree, file) {
     let tabBlockCode;
     let depth;
@@ -18,9 +19,11 @@ function tabsPlugin() {
         tabBlockCode = child;
         tabBlockCode.children = [];
         tabBlockCode.tabs = [];
-        tabBlockCode.type = 'tabs';
+        tabBlockCode.type = 'code';
+        tabBlockCode.lang = 'tabs';
         // end of tab block code
       } else if (isEndTabBlockCode(child)) {
+        tabBlockCode.value = JSON.stringify(tabBlockCode.children);
         tabBlockCode = null;
         depth = null;
         child.toDelete = true;

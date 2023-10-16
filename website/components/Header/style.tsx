@@ -13,7 +13,7 @@ const useStyles = makeStyles<Theme>((theme) => ({
     alignItems: 'center',
     justifyContent: 'center',
     color: '#fff',
-    fontWeight: theme.typography.fontWeightBold,
+    fontWeight: 'bold',
     padding: theme.spacing(1),
     width: '100%',
     '& > img': {

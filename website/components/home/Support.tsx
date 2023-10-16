@@ -137,7 +137,7 @@ const Support: React.ComponentType = () => {
         <polygon fill="white" points="0,100 100,0 100,100" />
       </svg>
       <Container className={classes.container}>
-        <Grid container alignItems="center" justify="center" className={classes.image}>
+        <Grid container alignItems="center" justifyContent="center" className={classes.image}>
           <Grid item xs={false} md={3}></Grid>
           <Grid item xs={12} md={9}>
             <Box className={classes.content} p={1}>

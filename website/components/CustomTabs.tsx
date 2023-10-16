@@ -41,14 +41,14 @@ const useTabsStyles = makeStyles<Theme>((theme) => ({
     },
   },
 }));
-const useTabItemStyles = makeStyles<Theme>((theme) => ({
+const useTabItemStyles = makeStyles<Theme>(() => ({
   root: {
     minHeight: 30,
     minWidth: 100,
   },
   wrapper: {
     textTransform: 'initial',
-    fontWeight: theme.typography.fontWeightBold,
+    fontWeight: 'bold',
   },
 }));
 

@@ -6,6 +6,7 @@ import Card from '@material-ui/core/Card';
 
 interface TabsListProps {
   tabs: string[];
+  children?: React.ReactNode;
 }
 
 const TabsList: React.ComponentType<TabsListProps> = ({ tabs, children }) => {

@@ -109,7 +109,7 @@ const Features: React.ComponentType = () => {
         <Typography className={classes.title} align="center" variant="h3" color="primary">
           Vulcain: at a glance
         </Typography>
-        <Grid container spacing={2} alignItems="flex-start" justify="center">
+        <Grid container spacing={2} alignItems="flex-start" justifyContent="center">
           <FeatureItem
             classes={classes}
             Icon={Http}

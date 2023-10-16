@@ -45,7 +45,7 @@ const References: React.ComponentType = () => {
         <Typography className={classes.title} align="center" variant="h3" color="textPrimary">
           Implementations
         </Typography>
-        <Grid container justify="center">
+        <Grid container justifyContent="center">
           {logos.map((logo) => (
             <Grid item xs={4} sm={3} md={2} key={logo.name}>
               {logo.external ? (

@@ -3,7 +3,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 
 interface CodeBlockProps {
   language: string;
-  value: string;
+  value: React.ReactNode;
 }
 
 const CodeBlock: React.ComponentType<CodeBlockProps> = ({ language, value }) => {

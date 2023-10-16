@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { AppBar, Button, IconButton, Box, Toolbar, Hidden, Link as MuiLink } from '@material-ui/core';
@@ -27,6 +28,7 @@ const Header: React.ComponentType = () => {
           <a href="https://les-tilleuls.coop/en" target="_blank" rel="noopener noreferrer">
             <img className={classes.sponsor} alt="sponsor" src="/static/sponsor.svg" width="206" height="40" />
           </a>
+          {/* @ts-ignore */}
           <Hidden smDown initialWidth="md">
             <Box px={1} flex={1} height="100%">
               <Link href="/docs" passHref>
@@ -41,6 +43,7 @@ const Header: React.ComponentType = () => {
               </Link>
             </Box>
           </Hidden>
+          {/* @ts-ignore */}
           <Hidden mdUp>
             <Box display="flex" flex={1} justifyContent="flex-end">
               <IconButton aria-label="open-menu" onClick={() => setIsDrawerOpen(true)} className={classes.burgerButton}>

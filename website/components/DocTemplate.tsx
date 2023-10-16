@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from 'react';
 import { Drawer, Box, Hidden } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
@@ -38,6 +39,7 @@ const DocTemplate: React.ComponentType<DocTemplateProps> = ({ content }) => {
   return (
     <Page withFooter={false}>
       <Box display="flex" width="100%">
+        {/* @ts-ignore */}
         <Hidden smDown initialWidth="md">
           <Drawer
             className={classes.drawer}

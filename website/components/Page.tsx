@@ -77,7 +77,10 @@ const footers = [
 ];
 
 // TODO: transform in HOC
-const Page: React.ComponentType<{ withFooter?: boolean }> = ({ children, withFooter = true }) => {
+const Page: React.ComponentType<{ withFooter?: boolean; children: React.ReactNode }> = ({
+  children,
+  withFooter = true,
+}) => {
   const classes = useStyles();
 
   return (
@@ -90,7 +93,7 @@ const Page: React.ComponentType<{ withFooter?: boolean }> = ({ children, withFoo
         {withFooter && (
           <footer className={classNames(classes.footer)}>
             <Container>
-              <Grid container spacing={2} justify="space-evenly">
+              <Grid container spacing={2} justifyContent="space-evenly">
                 {footers.map((footer) => (
                   <Grid item xs key={footer.title}>
                     <Typography variant="h6" component="span" color="inherit" gutterBottom>

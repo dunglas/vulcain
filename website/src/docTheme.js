@@ -1,10 +1,10 @@
-import { createMuiTheme } from '@material-ui/core/styles';
+import { createTheme } from '@material-ui/core/styles';
 import { red } from '@material-ui/core/colors';
 
 const PRIMARY = '#f5731b';
 const SECONDARY = '#047da7';
 
-const initialTheme = createMuiTheme();
+const initialTheme = createTheme();
 
 // Fix anchors (because of the fixed header).
 const anchorFixer = {
@@ -17,7 +17,7 @@ const anchorFixer = {
 };
 
 // Create a theme instance.
-const theme = createMuiTheme({
+const theme = createTheme({
   palette: {
     primary: {
       main: PRIMARY,

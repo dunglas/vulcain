@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from 'react';
 import { Box, Typography, Container, Grid, Button, Hidden, Link as MuiLink, Theme } from '@material-ui/core';
 import Link from 'next/link';
@@ -33,8 +34,9 @@ const Main: React.ComponentType = () => {
   return (
     <section className={classes.root}>
       <Container>
-        <Grid container alignItems="center" justify="center">
+        <Grid container alignItems="center" justifyContent="center">
           <Grid item xs={12} md={7} className={classes.image}>
+            {/* @ts-ignore */}
             <Hidden xsDown>
               <Animation />
             </Hidden>
