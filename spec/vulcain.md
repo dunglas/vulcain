@@ -528,7 +528,7 @@ Used in production.
 
 Contact Information:
 
-Kévin Dunglas, [kevin+vulcain@dunglas.fr](mailto:kevin+vulcain@dunglas.fr) <https://vulcain.rocks>
+Kévin Dunglas, [kevin+vulcain@dunglas.dev](mailto:kevin+vulcain@dunglas.dev) <https://vulcain.rocks>
 
 Interoperability:
 
