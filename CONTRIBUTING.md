@@ -20,16 +20,34 @@ Install the dependencies:
 
     $ go get
 
-Run the server with [`xcaddy`](https://github.com/caddyserver/xcaddy):
-
-    $ cd caddy
-    $ PATH=".:$PATH" xcaddy run
-
 Run the fixture API:
 
     # You must run the server too
     $ cd ../fixtures/
     $ go run main.go
+
+Run Caddy with the Vulcain module as a reverse proxy:
+
+    $ cd caddy/
+    $ go run vulcain/main.go
+
+Alternatively, to use VSCode and its integrated debugger, use this configuration in `.vscode/launch.json`:
+
+```json
+{
+   "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch the proxy",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/caddy/vulcain",
+            "args": ["run", "--config", "../fixtures/Caddyfile"]
+        }
+    ]
+}
+```
 
 Go on `http://localhost:8081` and enjoy!
 The API is available on `https://localhost:3000`.
@@ -40,7 +58,7 @@ To run the test suite:
 
     $ go test -v -timeout 30s github.com/dunglas/vulcain/caddy
 
-## Start a Demo API and Contribute to the Gateway Server
+## Start a Demo API and Contribute to the Legacy Gateway Server
 
 Clone the project:
 

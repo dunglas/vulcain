@@ -192,8 +192,8 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 	tree.importPointers(fields, f)
 
 	var (
-		oaRoute                         *routers.Route
-		oaRouteTested, addPreloadToVary bool
+		oaRoute                        *routers.Route
+		oaRouteTested, usePreloadLinks bool
 	)
 	newBody := v.traverseJSON(currentBody, tree, len(f) > 0, func(n *node, val string) string {
 		var (
@@ -214,18 +214,31 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		}
 
 		if n.preload {
-			addPreloadToVary = !v.push(u, req, responseHeaders, n, preloadHeader, fieldsHeader)
+			usePreloadLinks = !v.push(u, rw, req, responseHeaders, n, preloadHeader, fieldsHeader)
 		}
 
 		return newValue
 	})
 
+	if usePreloadLinks {
+		h := rw.Header()
+
+		// If responseHeaders is not the same as rw.Header() (e.g. when using the built-in reverse proxy)
+		// temporarly copy Link headers to send the 103 response
+		_, ok := h["Link"]
+		if !ok {
+			h["Link"] = responseHeaders["Link"]
+		}
+		rw.WriteHeader(http.StatusEarlyHints)
+		if !ok {
+			delete(h, "Link")
+		}
+		responseHeaders.Add("Vary", "Preload")
+	}
+
 	responseHeaders.Set("Content-Length", strconv.Itoa(len(newBody)))
 	if fieldsHeader {
 		responseHeaders.Add("Vary", "Fields")
-	}
-	if addPreloadToVary {
-		responseHeaders.Add("Vary", "Preload")
 	}
 
 	return newBody, nil
@@ -246,13 +259,13 @@ func (v *Vulcain) addPreloadHeader(h http.Header, link string) {
 
 // push pushes a relation or adds a Link rel=preload header as a fallback.
 // TODO: allow to set the nopush attribute using the configuration (https://www.w3.org/TR/preload/#server-push-http-2)
-// TODO: send 103 early hints responses (https://tools.ietf.org/html/rfc8297)
-func (v *Vulcain) push(u *url.URL, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
+func (v *Vulcain) push(u *url.URL, rw http.ResponseWriter, req *http.Request, newHeaders http.Header, n *node, preloadHeader, fieldsHeader bool) bool {
 	pusher := req.Context().Value(ctxKey{}).(*waitPusher)
 
 	url := u.String()
 	if pusher == nil || u.IsAbs() {
 		v.addPreloadHeader(newHeaders, url)
+
 		return false
 	}
 

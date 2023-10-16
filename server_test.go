@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httptrace"
+	"net/textproto"
 	"net/url"
 	"os"
 	"os/exec"
@@ -242,8 +244,46 @@ func TestPreloadHeader(t *testing.T) {
 	resp, _ := client.Do(req)
 	b, _ := io.ReadAll(resp.Body)
 
-	assert.Equal(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
-	assert.Equal(t, []string{"Fields", "Preload"}, resp.Header["Vary"])
+	assert.ElementsMatch(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
+	assert.ElementsMatch(t, []string{"Preload", "Fields"}, resp.Header["Vary"])
+	assert.Equal(t, `{"hydra:member":[
+		"/books/1.jsonld",
+		"/books/2.jsonld"
+	]}`, string(b))
+}
+
+func TestEarlyHints(t *testing.T) {
+	upstream, gateway := createServers()
+	defer upstream.Close()
+	defer gateway.Close()
+
+	expectedLinkHeaders := []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}
+
+	// early hint should be sent when a preload header is set
+	var earlyHintsCount int
+	trace := &httptrace.ClientTrace{
+		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
+			if code == http.StatusEarlyHints {
+				assert.ElementsMatch(t, expectedLinkHeaders, header["Link"])
+				earlyHintsCount++
+			}
+
+			return nil
+		},
+	}
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", gateway.URL+"/books.jsonld", nil)
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+	req.Header.Add("Fields", `"/hydra:member"`)
+	req.Header.Add("Preload", `"/hydra:member/*"`)
+
+	resp, _ := client.Do(req)
+	b, _ := io.ReadAll(resp.Body)
+
+	assert.Equal(t, 1, earlyHintsCount)
+	assert.ElementsMatch(t, expectedLinkHeaders, resp.Header["Link"])
+	assert.ElementsMatch(t, []string{"Fields", "Preload"}, resp.Header["Vary"])
 	assert.Equal(t, `{"hydra:member":[
 		"/books/1.jsonld",
 		"/books/2.jsonld"
