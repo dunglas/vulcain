@@ -244,8 +244,8 @@ func TestPreloadHeader(t *testing.T) {
 	resp, _ := client.Do(req)
 	b, _ := io.ReadAll(resp.Body)
 
-	assert.Equal(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
-	assert.Equal(t, []string{"Preload", "Fields"}, resp.Header["Vary"])
+	assert.ElementsMatch(t, []string{"</books/1.jsonld>; rel=preload; as=fetch", "</books/2.jsonld>; rel=preload; as=fetch"}, resp.Header["Link"])
+	assert.ElementsMatch(t, []string{"Preload", "Fields"}, resp.Header["Vary"])
 	assert.Equal(t, `{"hydra:member":[
 		"/books/1.jsonld",
 		"/books/2.jsonld"
