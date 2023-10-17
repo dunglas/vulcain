@@ -52,7 +52,7 @@ const References: React.ComponentType = () => {
                 <a href={logo.url} target="_blank" rel="noopener noreferrer">
                   <img
                     className={classes.logoImage}
-                    src={`static/references/${logo.logo}.png`}
+                    src={`/img/references/${logo.logo}.png`}
                     alt={logo.name}
                     width="300"
                     height="110"
@@ -63,7 +63,7 @@ const References: React.ComponentType = () => {
                   <a>
                     <img
                       className={classes.logoImage}
-                      src={`static/references/${logo.logo}.png`}
+                      src={`/img/references/${logo.logo}.png`}
                       alt={logo.name}
                       width="300"
                       height="110"
