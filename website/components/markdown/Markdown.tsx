@@ -57,9 +57,21 @@ const Markdown: React.ComponentType<MarkdownProps> = ({ source }) => {
   // adds proper href to RFC links
   const formattedSource = source.replace(/\[@!?(.*?)\]/gm, replacer);
   const transformImageUri = (input) => {
-    if (input.includes('/static/schemas')) return input;
-    if (/^https?:/.test(input)) return input;
-    if (/^schemas\/vulcain_doc/.test(input)) return input.replace('schemas', '/static/schemas');
+    console.log(input);
+    if (input.includes('/img/schemas')) {
+      console.log(input, ' ', input);
+      return input;
+    }
+    if (/^https?:/.test(input)) {
+      console.log(input, ' ', input);
+      return input;
+    }
+    if (/^schemas\/vulcain_doc/.test(input)) {
+      const result = input.replace('schemas', '/img/schemas');
+      console.log(input, ' ', result);
+      return result;
+    }
+    console.log(input, ' ', `https://raw.githubusercontent.com/dunglas/vulcain/master/${input}`);
     return `https://raw.githubusercontent.com/dunglas/vulcain/master/${input}`;
   };
 

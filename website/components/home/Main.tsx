@@ -7,7 +7,7 @@ import Animation from './Animation';
 
 const useStyles = makeStyles<Theme>((theme) => ({
   root: {
-    background: `url("/static/isometric.png") 140%, linear-gradient(315deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+    background: `url("/img/isometric.png") 140%, linear-gradient(315deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
     color: '#fff',
     padding: theme.spacing(8, 0),
   },

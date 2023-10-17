@@ -16,17 +16,17 @@ const Header: React.ComponentType = () => {
     <>
       <MuiLink href="https://mercure.rocks/" underline="none" className={classes.mercure}>
         Discover
-        <img src="/static/logo-mercure.svg" alt="mercure" width="85" height="16" />| Real-Time with ease
+        <img src="/img/logo-mercure.svg" alt="mercure" width="85" height="16" />| Real-Time with ease
       </MuiLink>
       <AppBar position="sticky" color="default" className={classes.appBar}>
         <Toolbar className={classes.toolbar}>
           <Link href="/" passHref>
             <Button className={classes.logoLink} component="a">
-              <img className={classes.logo} src="/static/logo.svg" alt="Vulcain.rocks" width="176" height="40" />
+              <img className={classes.logo} src="/img/logo.svg" alt="Vulcain.rocks" width="176" height="40" />
             </Button>
           </Link>
           <a href="https://les-tilleuls.coop/en" target="_blank" rel="noopener noreferrer">
-            <img className={classes.sponsor} alt="sponsor" src="/static/sponsor.svg" width="206" height="40" />
+            <img className={classes.sponsor} alt="sponsor" src="/img/sponsor.svg" width="206" height="40" />
           </a>
           {/* @ts-ignore */}
           <Hidden smDown initialWidth="md">

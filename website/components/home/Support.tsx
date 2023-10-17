@@ -38,7 +38,7 @@ const useStyles = makeStyles<Theme>((theme) => ({
     border: `8px solid ${theme.palette.primary.dark}`,
   },
   image: {
-    background: `url("/static/help.svg")`,
+    background: `url("/img/help.svg")`,
     backgroundPosition: '0 center',
     backgroundRepeat: 'no-repeat',
     backgroundSize: 'auto 100%',
@@ -149,7 +149,7 @@ const Support: React.ComponentType = () => {
                   classes={classes}
                   title="Documentation"
                   description="Reading the documentation is an excellent way to discover Vulcain."
-                  image="/static/book.svg"
+                  image="/img/book.svg"
                 >
                   <Link href="/docs" passHref>
                     <Button size="small" color="primary" variant="outlined" component="a">
@@ -163,7 +163,7 @@ const Support: React.ComponentType = () => {
                   classes={classes}
                   title="Community support"
                   description="Chat with the community on Slack and Stack Overflow"
-                  image="/static/handshake.svg"
+                  image="/img/handshake.svg"
                 >
                   <Link href="/docs/help" passHref>
                     <Button size="small" color="primary" variant="outlined" component="a">
@@ -184,7 +184,7 @@ const Support: React.ComponentType = () => {
                   classes={classes}
                   title="Training"
                   description="Improve your Vulcain skills thanks to our trainings."
-                  image="/static/presentation.svg"
+                  image="/img/presentation.svg"
                 >
                   <Button
                     size="small"
@@ -202,7 +202,7 @@ const Support: React.ComponentType = () => {
                   classes={classes}
                   title="Professional services"
                   description="Les-Tilleuls.coop provides professional services: web development, trainings or consulting."
-                  image="/static/laptop-code.svg"
+                  image="/img/laptop-code.svg"
                 >
                   <Button
                     size="small"
