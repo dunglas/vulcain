@@ -12,7 +12,18 @@ It supports [hypermedia APIs](https://restfulapi.net/hateoas/) (e.g. any API cre
 [![codecov](https://codecov.io/gh/dunglas/vulcain/branch/master/graph/badge.svg)](https://codecov.io/gh/dunglas/vulcain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dunglas/vulcain)](https://goreportcard.com/report/github.com/dunglas/vulcain)
 
-![Vulcain Schema](schemas/vulcain.png)
+[tabs]
+
+### Preload
+![Vulcain Schema](schemas/vulcain_doc_main_200.png)
+
+### Preload + Early Hints
+![Vulcain Schema](schemas/vulcain_doc_main_early_hints.png)
+
+### Server push
+![Vulcain Schema](schemas/vulcain_doc_main_server_push.png)
+
+[/tabs]
 
 Grab What You Need... Burn The REST!
 
@@ -48,7 +59,18 @@ See also [the comparison between Vulcain and GraphQL and other API formats](docs
 
 ## Pushing Relations
 
-![Preload Schema](schemas/preload-header.png)
+[tabs]
+
+### Preload
+![Preload Schema](schemas/vulcain_doc_preload_200.png)
+
+### Preload + Early Hints
+![Preload Schema](schemas/vulcain_doc_preload_early_hints.png)
+
+### Server push
+![Preload Schema](schemas/vulcain_doc_preload_server_push.png)
+
+[/tabs]
 
 Considering the following resources:
 
@@ -126,11 +148,33 @@ Vulcain allows to gracefully fallback to [`preload` links](https://www.w3.org/TR
 
 Alternatively to HTTP headers, the `preload` query parameter can be used:
 
-![Preload Query Schema](schemas/preload-query.png)
+[tabs]
+
+#### Preload
+![Preload Query Schema](schemas/vulcain_doc_preload_query_200.png)
+
+#### Preload + Early Hints
+![Preload Query Schema](schemas/vulcain_doc_preload_query_early_hints.png)
+
+#### Server push
+![Preload Query Schema](schemas/vulcain_doc_preload_query_server_push.png)
+
+[/tabs]
 
 ## Filtering Resources
 
-![Fields Schema](schemas/fields-header.png)
+[tabs]
+
+### Preload
+![Filter Schema](schemas/vulcain_doc_filter_200.png)
+
+### Preload + Early Hints
+![Filter Schema](schemas/vulcain_doc_filter_early_hints.png)
+
+### Server push
+![Filter Schema](schemas/vulcain_doc_filter_server_push.png)
+
+[/tabs]
 
 The `Fields` HTTP header allows the client to ask the server to return only the specified fields of the requested resource, and of the preloaded related resources.
 
@@ -186,7 +230,18 @@ It will also push the following filtered `/authors/1` resource:
 
 Alternatively to HTTP headers, the `fields` query parameter can be used to filter resources:
 
-![Preload Query Schema](schemas/fields-query.png)
+[tabs]
+
+#### Preload
+![Fields Schema](schemas/vulcain_doc_filter_query_200.png)
+
+#### Preload + early hints
+![Fields Schema](schemas/vulcain_doc_filter_query_early_hints.png)
+
+#### Server push
+![Fields Schema](schemas/vulcain_doc_filter_query_server_push.png)
+
+[/tabs]
 
 ## See Also
 
