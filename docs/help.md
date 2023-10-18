@@ -9,8 +9,8 @@
 
 [Les-Tilleuls.coop](https://les-tilleuls.coop) provides professional services for Vulcain including training, development and API design.
 
-[Contact Les-Tilleuls.coop](https://les-tilleuls.coop/en/contact) for more information.
+[Contact Les-Tilleuls.coop](https://les-tilleuls.coop/#contact) for more information.
 
 ## Training
 
-[Masterclass](https://masterclass.les-tilleuls.coop) organizes official training sessions about the Mercure protocol (available in English and in French).
+[Masterclass](https://les-tilleuls.coop/masterclass) organizes official training sessions about Vulcain (available in English and in French).
