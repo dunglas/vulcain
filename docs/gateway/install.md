@@ -51,7 +51,7 @@ A Docker image is available on Docker Hub. The following command is enough to ge
         -v /your/tls/certs:/tls \
         -e UPSTREAM='http://your-api' -e KEY_FILE='tls/key.pem' -e CERT_FILE='tls/cert.pem' \
         -p 443:443 \
-        dunglas/vulcain
+        dunglas/vulcain:legacy-latest
 
 The gateway is available on `https://localhost`.
 
@@ -60,7 +60,7 @@ In production, run:
     docker run \
         -e UPSTREAM='http://your-api' -e ACME_HOSTS='example.com' \
         -p 80:80 -p 443:443 \
-        dunglas/vulcain
+        dunglas/vulcain:legacy-latest
 
 Be sure to update the value of `ACME_HOSTS` to match your domain name(s), a Let's Encrypt TLS certificate will be automatically generated.
 

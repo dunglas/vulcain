@@ -11,12 +11,26 @@ The Vulcain module for Caddy allows to turn any existing web API in a one suppor
 
 ## Install
 
+### Docker
+
+The easiest way to get started is to use Docker:
+
+```console
+docker run -e VULCAIN_UPSTREAM='http://your-api' -p 80:80 -p 443:443 dunglas/vulcain 
+```
+
+The configuration file is located at `/etc/caddy/Caddyfile`.
+
+### Binaries
+
 1. Go on [the Caddy server download page](https://caddyserver.com/download)
 2. Select the `github.com/dunglas/vulcain/caddy` module
 3. Select other modules you're interested in such as [the cache module](https://github.com/caddyserver/cache-handler) or [Mercure](https://mercure.rocks) (optional)
 4. Download and enjoy!
 
 Alternatively, you can use [xcaddy](https://github.com/caddyserver/xcaddy) to create a custom build of Caddy containing the Vulcain module: `xcaddy build --with github.com/dunglas/vulcain/caddy`
+
+Pre-built binaries are also available for download [on the releases page](https://github.com/dunglas/vulcain/releases).
 
 ## Configuration
 
@@ -36,6 +50,8 @@ example.com {
     reverse_proxy my-api:8080 # all other handlers such as the static file server and custom handlers are also supported
 }
 ```
+
+All other [Caddyfile directives](https://caddyserver.com/docs/caddyfile) are also supported.
 
 ## Start the Server
 

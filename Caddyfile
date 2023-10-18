@@ -1,0 +1,20 @@
+{
+	order vulcain before request_header
+
+	{$CADDY_GLOBAL_OPTIONS}
+}
+
+{$CADDY_EXTRA_CONFIG}
+
+{$SERVER_NAME:localhost} {
+	vulcain {
+		#openapi_file ../../fixtures/openapi.yaml
+        #max_pushes 0
+        #early_hints
+	}
+	log
+	encode zstd gzip
+	reverse_proxy {env.VULCAIN_UPSTREAM}
+
+	{$CADDY_SERVER_EXTRA_DIRECTIVES}
+}
