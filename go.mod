@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/dunglas/httpsfv v1.0.2
-	github.com/getkin/kin-openapi v0.121.0
+	github.com/getkin/kin-openapi v0.122.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/gorilla/handlers v1.5.2
 	github.com/joho/godotenv v1.3.0

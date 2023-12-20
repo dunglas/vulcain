@@ -50,7 +50,7 @@ func (o *openAPI) getRoute(url *url.URL) *routers.Route {
 // getRelation generated the link for the given parameters
 // TODO: support operationRef in addition to operationId
 func (o *openAPI) getRelation(r *routers.Route, selector, value string) string {
-	for code, responseRef := range r.Operation.Responses {
+	for code, responseRef := range r.Operation.Responses.Map() {
 		if (!strings.HasPrefix(code, "2")) || responseRef.Value == nil {
 			continue
 		}
@@ -97,7 +97,7 @@ func (o *openAPI) generateLinkForResponse(response *openapi3.Response, selector,
 
 // generateLink uses the template IRI extracted from the OpenAPI description to generate a URL
 func (o *openAPI) generateLink(operationID, parameter, value string) string {
-	for path, i := range o.swagger.Paths {
+	for path, i := range o.swagger.Paths.Map() {
 		if op := i.GetOperation("GET"); op != nil && op.OperationID == operationID {
 			return strings.ReplaceAll(path, "{"+parameter+"}", value)
 		}
