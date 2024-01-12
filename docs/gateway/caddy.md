@@ -59,7 +59,7 @@ Just run `./caddy run`.
 
 ## Cache Handler
 
-Vulcain is best used with an HTTP cache server. The Caddy and the Vulcain team maintain together a [distributed HTTP cache module](github.com/caddyserver/cache-handler) built on top of [Souin](https://github.com/darkweak/souin) supporting most of the RFC.
+Vulcain is best used with an HTTP cache server. The Caddy and the Vulcain team maintain together a [distributed HTTP cache module](https://github.com/caddyserver/cache-handler) built on top of [Souin](https://github.com/darkweak/souin) supporting most of the RFC.
 
 ## 103 Early Hints
 
