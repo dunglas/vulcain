@@ -19,6 +19,7 @@ import (
 func init() {
 	caddy.RegisterModule(Vulcain{})
 	httpcaddyfile.RegisterHandlerDirective("vulcain", parseCaddyfile)
+	httpcaddyfile.RegisterDirectiveOrder("vulcain", "before", "request_header")
 }
 
 var bufPool = sync.Pool{

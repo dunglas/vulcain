@@ -1,6 +1,5 @@
 {
     debug
-    order vulcain before request_header
 }
 
 localhost:3000 {

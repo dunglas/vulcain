@@ -37,10 +37,6 @@ Pre-built binaries are also available for download [on the releases page](https:
 Example configuration:
 
 ```caddyfile
-{
-    order vulcain before request_header
-}
-
 example.com {
     vulcain {
         openapi_file my-openapi-description.yaml # optional
