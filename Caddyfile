@@ -1,6 +1,4 @@
 {
-	order vulcain before request_header
-
 	{$CADDY_GLOBAL_OPTIONS}
 }
 

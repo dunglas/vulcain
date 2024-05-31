@@ -11,8 +11,6 @@ func TestVulcain(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(` 
 	{
-	  order vulcain before request_header
-
 	  skip_install_trust
 	  admin localhost:2999
 	  http_port     9080
