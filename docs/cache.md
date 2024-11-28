@@ -19,7 +19,7 @@ A common setup is to put the Vulcain Gateway Server in at the edge of the networ
 The full documents (not filtered) should be stored by Varnish. To do so, Varnish should strip the `Fields` and `Preload` headers before forwarding the request to the backend server.
 This way, in most cases, the resources will be fetched directly from the Varnish cache (hit) and will be served almost instantly quickly to the Vulcain Gateway Server. The Vulcain server will then recursively fetch requested relations, and will filter the documents by removing useless fields.
 
-Vulcain also plays very well with cache invalidation mechanisms such as [xkey](https://github.com/varnish/varnish-modules/blob/master/docs/vmod_xkey.rst).
+Vulcain also plays very well with cache invalidation mechanisms such as [xkey](https://github.com/varnish/varnish-modules/blob/master/src/vmod_xkey.vcc).
 
 ## Preventing to Push Resources Already in Cache (Cache-Digests and CASPer)
 
