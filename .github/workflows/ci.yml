@@ -15,15 +15,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.23'
           cache-dependency-path: |
             go.sum
             caddy/go.sum
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
 
@@ -34,9 +34,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.23'
           cache-dependency-path: |
             go.sum
             caddy/go.sum
@@ -50,7 +50,7 @@ jobs:
 
       - name: Test Caddy module
         run: |
-          go test -race -covermode atomic -coverprofile=cover.out -coverpkg=github.com/dunglas/vulcain
+          go test -tags=nobadger,nomysql,nopgx -race -covermode atomic -coverprofile=cover.out -coverpkg=github.com/dunglas/vulcain
           sed '1d' cover.out >> ../cover.out
         working-directory: ./caddy
 
