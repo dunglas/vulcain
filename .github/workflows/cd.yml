@@ -11,23 +11,29 @@ on:
 permissions:
   contents: write
 
+env:
+  GOTOOLCHAIN: local
+  GOFLAGS: "-tags=nobadger,nomysql,nopgx"
+
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           cache-dependency-path: |
             go.sum
             caddy/go.sum
+          cache: false
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
