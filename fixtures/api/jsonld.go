@@ -50,26 +50,34 @@ func (h *JSONLDHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	m := http.NewServeMux()
 	m.HandleFunc("/forwarded", func(rw http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(rw, "X-Forwarded-Host: "+req.Header.Get("X-Forwarded-Host")+"\nX-Forwarded-Proto: "+req.Header.Get("X-Forwarded-Proto")+"\nX-Forwarded-For: "+req.Header.Get("X-Forwarded-For"))
+		if _, err := fmt.Fprint(rw, "X-Forwarded-Host: "+req.Header.Get("X-Forwarded-Host")+"\nX-Forwarded-Proto: "+req.Header.Get("X-Forwarded-Proto")+"\nX-Forwarded-For: "+req.Header.Get("X-Forwarded-For")); err != nil {
+			panic(err)
+		}
 	})
 	m.HandleFunc("/books.jsonld", func(rw http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(rw, BooksContent)
+		if _, err := fmt.Fprint(rw, BooksContent); err != nil {
+			panic(err)
+		}
 	})
 	m.HandleFunc("/authors/", func(rw http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(rw, Author1Content)
+		if _, err := fmt.Fprint(rw, Author1Content); err != nil {
+			panic(err)
+		}
 	})
 	m.HandleFunc("/books/", func(rw http.ResponseWriter, req *http.Request) {
 		u, _ := url.Parse(req.RequestURI)
 		u.RawQuery = ""
 
 		encodedURI, _ := json.Marshal(u.String())
-		fmt.Fprint(rw, `{
+		if _, err := fmt.Fprint(rw, `{
 	"@id": `+string(encodedURI)+`,
 	"title": "Book 1",
 	"description": "A good book",
 	"author": "/authors/1.jsonld",
 	"related": "/books/99.jsonld"
-	}`)
+	}`); err != nil {
+			panic(err)
+		}
 	})
 
 	m.ServeHTTP(rw, req)

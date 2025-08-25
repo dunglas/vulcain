@@ -17,7 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+            persist-credentials: false
 
       - uses: actions/setup-go@v5
         with:
@@ -27,7 +29,7 @@ jobs:
             caddy/go.sum
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
           version: latest
 
@@ -36,7 +38,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+            persist-credentials: false
 
       - uses: actions/setup-go@v5
         with:
@@ -46,7 +50,7 @@ jobs:
             caddy/go.sum
 
       - name: Install test dependencies
-        run: composer install --no-progress --no-suggest --ansi
+        run: composer install --no-progress --no-suggest --ansi --classmap-authoritative
         working-directory: test-push
 
       - name: Test
@@ -59,6 +63,6 @@ jobs:
         working-directory: ./caddy
 
       - name: Upload coverage results
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

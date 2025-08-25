@@ -60,8 +60,7 @@ func TestNewServerFromEnv(t *testing.T) {
 	assert.NotNil(t, s)
 	assert.Nil(t, err)
 
-	os.Setenv("KEY_FILE", "foo")
-	defer os.Unsetenv("KEY_FILE")
+	t.Setenv("KEY_FILE", "foo")
 	s, err = NewServerFromEnv()
 	assert.Nil(t, s)
 	assert.Error(t, err)

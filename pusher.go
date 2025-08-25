@@ -39,7 +39,7 @@ var errRelationAlreadyPushed = errors.New("relation already pushed")
 
 func (p *waitPusher) Push(url string, opts *http.PushOptions) error {
 	if p.maxPushes != -1 && p.nbPushes >= p.maxPushes {
-		return fmt.Errorf("Maximum allowed pushes (%d) reached", p.maxPushes)
+		return fmt.Errorf("maximum allowed pushes (%d) reached", p.maxPushes)
 	}
 
 	cacheKey := fmt.Sprintf(":p:%v:f:%v:u:%s", opts.Header["Preload"], opts.Header["Fields"], url)
