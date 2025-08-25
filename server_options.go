@@ -88,7 +88,7 @@ func NewOptionsFromEnv() (*ServerOptions, error) {
 	}
 
 	if len(missingEnv) > 0 {
-		return nil, fmt.Errorf("The following environment variable must be defined: %s", missingEnv)
+		return nil, fmt.Errorf("the following environment variable must be defined: %s", missingEnv)
 	}
 	return o, nil
 }

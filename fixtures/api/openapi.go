@@ -31,18 +31,24 @@ func (h *OpenAPIHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	m := http.NewServeMux()
 	m.HandleFunc("/oa/books.json", func(rw http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(rw, OABooksContent)
+		if _, err := fmt.Fprint(rw, OABooksContent); err != nil {
+			panic(err)
+		}
 	})
 	m.HandleFunc("/oa/authors/", func(rw http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(rw, OAAuthor1Content)
+		if _, err := fmt.Fprint(rw, OAAuthor1Content); err != nil {
+			panic(err)
+		}
 	})
 	m.HandleFunc("/oa/books/", func(rw http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(rw, `{
+		if _, err := fmt.Fprint(rw, `{
 	"id": `+findID.FindString(req.RequestURI)+`,
 	"title": "Book 1",
 	"description": "A good book",
 	"author": 1
-}`)
+}`); err != nil {
+			panic(err)
+		}
 	})
 
 	m.ServeHTTP(rw, req)

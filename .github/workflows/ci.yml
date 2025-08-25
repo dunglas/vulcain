@@ -4,8 +4,12 @@ on:
   push:
   pull_request:
 
+permissions:
+    contents: read
+
 env:
-  GO111MODULE: 'on'
+  GOTOOLCHAIN: local
+  GOFLAGS: "-tags=nobadger,nomysql,nopgx"
 
 jobs:
   golangci:
@@ -13,17 +17,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+            persist-credentials: false
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           cache-dependency-path: |
             go.sum
             caddy/go.sum
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
           version: latest
 
@@ -32,17 +38,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+            persist-credentials: false
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           cache-dependency-path: |
             go.sum
             caddy/go.sum
 
       - name: Install test dependencies
-        run: composer install --no-progress --no-suggest --ansi
+        run: composer install --no-progress --no-suggest --ansi --classmap-authoritative
         working-directory: test-push
 
       - name: Test
@@ -50,11 +58,11 @@ jobs:
 
       - name: Test Caddy module
         run: |
-          go test -tags=nobadger,nomysql,nopgx -race -covermode atomic -coverprofile=cover.out -coverpkg=github.com/dunglas/vulcain
+          go test -race -covermode atomic -coverprofile=cover.out -coverpkg=github.com/dunglas/vulcain
           sed '1d' cover.out >> ../cover.out
         working-directory: ./caddy
 
       - name: Upload coverage results
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -17,7 +17,7 @@ func Example() {
 	handler := http.NewServeMux()
 	handler.Handle("/books.json", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `{
+		_, _ = fmt.Fprintln(w, `{
 	"title": "1984",
 	"genre": "dystopia",
 	"author": "/authors/orwell.json"
@@ -25,7 +25,7 @@ func Example() {
 	}))
 	handler.Handle("/authors/orwell.json", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `{
+		_, _ = fmt.Fprintln(w, `{
 			"name": "George Orwell",
 			"birthDate": "1903-06-25"
 		}`)

@@ -2,7 +2,6 @@ package vulcain
 
 import (
 	"net/url"
-	"os"
 	"testing"
 	"time"
 
@@ -26,8 +25,7 @@ func TestNewOptionsFromEnv(t *testing.T) {
 		"OPENAPI_FILE":  "openapi.yaml",
 	}
 	for k, v := range testEnv {
-		os.Setenv(k, v)
-		defer os.Unsetenv(k)
+		t.Setenv(k, v)
 	}
 
 	u, _ := url.Parse("http://example.com")
@@ -51,43 +49,40 @@ func TestNewOptionsFromEnv(t *testing.T) {
 }
 
 func TestMissingKeyFile(t *testing.T) {
-	os.Setenv("CERT_FILE", "foo")
-	defer os.Unsetenv("CERT_FILE")
+	t.Setenv("CERT_FILE", "foo")
 
 	_, err := NewOptionsFromEnv()
-	assert.EqualError(t, err, "The following environment variable must be defined: [KEY_FILE]")
+	assert.EqualError(t, err, "the following environment variable must be defined: [KEY_FILE]")
 }
 
 func TestMissingCertFile(t *testing.T) {
-	os.Setenv("KEY_FILE", "foo")
-	defer os.Unsetenv("KEY_FILE")
+	t.Setenv("KEY_FILE", "foo")
 
 	_, err := NewOptionsFromEnv()
-	assert.EqualError(t, err, "The following environment variable must be defined: [CERT_FILE]")
+	assert.EqualError(t, err, "the following environment variable must be defined: [CERT_FILE]")
 }
 
 func TestInvalidDuration(t *testing.T) {
-	vars := [2]string{"READ_TIMEOUT", "WRITE_TIMEOUT"}
-	for _, elem := range vars {
-		os.Setenv(elem, "1 MN (invalid)")
-		defer os.Unsetenv(elem)
-		_, err := NewOptionsFromEnv()
-		assert.EqualError(t, err, elem+`: time: unknown unit " MN (invalid)" in duration "1 MN (invalid)"`)
+	for _, elem := range [2]string{"READ_TIMEOUT", "WRITE_TIMEOUT"} {
+		t.Run(elem, func(t *testing.T) {
+			t.Setenv(elem, "1 MN (invalid)")
 
-		os.Unsetenv(elem)
+			_, err := NewOptionsFromEnv()
+			assert.EqualError(t, err, elem+`: time: unknown unit " MN (invalid)" in duration "1 MN (invalid)"`)
+		})
 	}
 }
 
 func TestInvalidUpstream(t *testing.T) {
-	os.Setenv("UPSTREAM", " http://foo.com")
-	defer os.Unsetenv("UPSTREAM")
+	t.Setenv("UPSTREAM", " https://foo.com")
+
 	_, err := NewOptionsFromEnv()
-	assert.EqualError(t, err, `parse " http://foo.com": first path segment in URL cannot contain colon`)
+	assert.EqualError(t, err, `parse " https://foo.com": first path segment in URL cannot contain colon`)
 }
 
 func TestInvalidMaxPushes(t *testing.T) {
-	os.Setenv("MAX_PUSHES", "invalid")
-	defer os.Unsetenv("MAX_PUSHES")
+	t.Setenv("MAX_PUSHES", "invalid")
+
 	_, err := NewOptionsFromEnv()
 	assert.EqualError(t, err, `MAX_PUSHES: invalid value "invalid" (strconv.Atoi: parsing "invalid": invalid syntax)`)
 }
