@@ -6,7 +6,7 @@ replace github.com/dunglas/vulcain => ../
 
 require (
 	github.com/caddyserver/caddy/v2 v2.10.2
-	github.com/dunglas/vulcain v1.2.0
+	github.com/dunglas/vulcain v1.2.1
 	go.uber.org/zap v1.27.0
 )
 
