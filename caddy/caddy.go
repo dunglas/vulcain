@@ -145,7 +145,14 @@ func (v *Vulcain) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				v.MaxPushes = maxPushes
 
 			case "early_hints":
-				v.EarlyHints = true
+				if !d.NextArg() {
+					continue // we consider it as true.
+				}
+
+				val := d.Val()
+				if val != "" {
+					v.EarlyHints, _ = strconv.ParseBool(val)
+				}
 			}
 		}
 	}
@@ -155,6 +162,9 @@ func (v *Vulcain) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 // parseCaddyfile unmarshals tokens from h into a new Middleware.
 func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
 	var m Vulcain
+
+	m.EarlyHints = true // set early hints to true by default.
+
 	err := m.UnmarshalCaddyfile(h.Dispenser)
 	return m, err
 }
