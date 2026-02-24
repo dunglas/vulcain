@@ -17,6 +17,7 @@ builds:
   - id: caddy
     dir: caddy/vulcain
     ldflags:
+      - -X 'github.com/caddyserver/caddy/v2/modules/caddyhttp.ServerHeader=Vulcain.rocks Caddy'
       - -X 'github.com/caddyserver/caddy/v2.CustomVersion=Vulcain.rocks {{ .Version }} Caddy'
     tags:
       - nobadger
@@ -35,6 +36,9 @@ builds:
       - "5"
       - "6"
       - "7"
+    ignore:
+      - goos: windows
+        goarch: arm
   # Legacy build
   - id: legacy
     dir: cmd/vulcain
@@ -52,6 +56,8 @@ builds:
     ignore:
       - goos: darwin
         goarch: '386'
+      - goos: windows
+        goarch: arm
 archives:
   - builds:
       - caddy
