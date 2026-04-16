@@ -25,8 +25,30 @@ if [[ ! $1 =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]
     exit 1
 fi
 
-git checkout main
-git pull
+# Pre-flight checks
+if [[ "$(git branch --show-current)" != "main" ]]; then
+    echo "You must be on the main branch to release." >&2
+    exit 1
+fi
+
+if [[ -n "$(git status --porcelain)" ]]; then
+    echo "Working tree is not clean. Commit or stash your changes first." >&2
+    exit 1
+fi
+
+git fetch origin
+local_head="$(git rev-parse HEAD)"
+remote_head="$(git rev-parse origin/main)"
+if [[ "$local_head" != "$remote_head" ]]; then
+    if git merge-base --is-ancestor HEAD origin/main; then
+        echo "Local main is behind origin/main. Pull first." >&2
+    elif git merge-base --is-ancestor origin/main HEAD; then
+        echo "Local main is ahead of origin/main. Push your commits or reset to origin/main before releasing." >&2
+    else
+        echo "Local main has diverged from origin/main. Reconcile with pull/rebase/reset before releasing." >&2
+    fi
+    exit 1
+fi
 
 cd caddy/
 go get "github.com/dunglas/vulcain@v$1"
