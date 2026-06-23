@@ -98,18 +98,45 @@ func (v *Vulcain) traverseJSON(currentBody []byte, tree *node, filter bool, rela
 		}
 
 		if n.path == "*" {
-			var i int
-			result.ForEach(func(_, value gjson.Result) bool {
-				// TODO: support iterating over objects
-				rawBytes := v.traverseJSON(getBytes(value, currentBody), n, filter, relationHandler)
-				newBody, err = sjson.SetRawBytes(newBody, strconv.Itoa(i), rawBytes)
-				if err != nil {
-					v.logger.Debug("cannot update array", zap.Stringer("node", n), zap.Int("index", i), zap.Error(err))
-				}
+			// Rebuild the array in a single pass. A per-index sjson.SetRawBytes call reallocates
+			// and copies the whole document each iteration, making the loop O(N²)
+			arr := make([]byte, 0, len(currentBody))
+			if filter {
+				// Filtered arrays are rebuilt from scratch, so emit compact JSON
+				arr = append(arr, '[')
+				var i int
+				result.ForEach(func(_, value gjson.Result) bool {
+					// TODO: support iterating over objects
+					rawBytes := v.traverseJSON(getBytes(value, currentBody), n, filter, relationHandler)
+					if i > 0 {
+						arr = append(arr, ',')
+					}
+					arr = append(arr, rawBytes...)
+					i++
+					return true
+				})
+				arr = append(arr, ']')
+			} else {
+				// Splice over the original bytes to preserve the array framing and whitespace
+				last := 0
+				result.ForEach(func(_, value gjson.Result) bool {
+					// TODO: support iterating over objects
+					rawBytes := v.traverseJSON(getBytes(value, currentBody), n, filter, relationHandler)
 
-				i++
-				return true
-			})
+					// value.Index is the element offset in currentBody; guard against an
+					// unknown (zero) index so the slice can never run backwards
+					idx := value.Index
+					if idx < last {
+						idx = last
+					}
+					arr = append(arr, currentBody[last:idx]...)
+					arr = append(arr, rawBytes...)
+					last = idx + len(value.Raw)
+					return true
+				})
+				arr = append(arr, currentBody[last:]...)
+			}
+			newBody = arr
 			continue
 		}
 
