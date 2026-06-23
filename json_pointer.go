@@ -63,36 +63,35 @@ func (n *node) String() string {
 }
 
 // partsToTree transforms a splitted JSON pointer to a tree
+// The traversal is iterative to avoid unbounded recursion: depth would otherwise equal
+// the number of pointer segments, which an attacker controls through the directive value
 func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {
-	if len(parts) == 0 {
-		return
-	}
-
-	var child *node
-	for _, c := range root.children {
-		if c.path == parts[0] {
-			child = c
-			break
+	n := root
+	for _, part := range parts {
+		var child *node
+		for _, c := range n.children {
+			if c.path == part {
+				child = c
+				break
+			}
 		}
-	}
 
-	if child == nil {
-		child = &node{}
-		child.path = parts[0]
-		child.parent = root
-		root.children = append(root.children, child)
-	}
+		if child == nil {
+			child = &node{path: part, parent: n}
+			n.children = append(n.children, child)
+		}
 
-	switch t {
-	case preload:
-		child.preload = true
-		child.preloadParams = append(child.preloadParams, params)
-	case fields:
-		child.fields = true
-		child.fieldsParams = append(child.fieldsParams, params)
-	}
+		switch t {
+		case preload:
+			child.preload = true
+			child.preloadParams = append(child.preloadParams, params)
+		case fields:
+			child.fields = true
+			child.fieldsParams = append(child.fieldsParams, params)
+		}
 
-	partsToTree(t, parts[1:], child, params)
+		n = child
+	}
 }
 
 // hasChildren checks if the node has at least a child of the given type
