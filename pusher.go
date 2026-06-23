@@ -38,13 +38,16 @@ type waitPusher struct {
 var errRelationAlreadyPushed = errors.New("relation already pushed")
 
 func (p *waitPusher) Push(url string, opts *http.PushOptions) error {
+	cacheKey := fmt.Sprintf(":p:%v:f:%v:u:%s", opts.Header["Preload"], opts.Header["Fields"], url)
+
+	// The counter check must hold the lock: reading nbPushes outside it races the locked
+	// increment below, letting concurrent pushes bypass maxPushes (TOCTOU)
+	p.Lock()
 	if p.maxPushes != -1 && p.nbPushes >= p.maxPushes {
+		p.Unlock()
 		return fmt.Errorf("maximum allowed pushes (%d) reached", p.maxPushes)
 	}
 
-	cacheKey := fmt.Sprintf(":p:%v:f:%v:u:%s", opts.Header["Preload"], opts.Header["Fields"], url)
-
-	p.Lock()
 	if _, ok := p.pushedURLs[cacheKey]; ok {
 		p.Unlock()
 		return errRelationAlreadyPushed
