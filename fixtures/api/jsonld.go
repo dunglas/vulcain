@@ -73,6 +73,7 @@ func (h *JSONLDHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	"@id": `+string(encodedURI)+`,
 	"title": "Book 1",
 	"description": "A good book",
+	"year": 2019,
 	"author": "/authors/1.jsonld",
 	"related": "/books/99.jsonld"
 	}`); err != nil {

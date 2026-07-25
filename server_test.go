@@ -202,6 +202,28 @@ func TestFieldsQuery(t *testing.T) {
 	assert.Equal(t, `{"@id":"/books.jsonld"}`, string(b))
 }
 
+func TestFieldsQueryDoesNotEncodePlainValues(t *testing.T) {
+	upstream, gateway := createServers(-1, false)
+	defer upstream.Close()
+	defer gateway.Close()
+
+	resp, _ := http.Get(gateway.URL + `/books/1.jsonld?fields="/title","/description"`)
+	b, _ := io.ReadAll(resp.Body)
+
+	assert.Equal(t, `{"title":"Book 1","description":"A good book"}`, string(b))
+}
+
+func TestFieldsQueryPreservesNumberType(t *testing.T) {
+	upstream, gateway := createServers(-1, false)
+	defer upstream.Close()
+	defer gateway.Close()
+
+	resp, _ := http.Get(gateway.URL + `/books/1.jsonld?fields="/year"`)
+	b, _ := io.ReadAll(resp.Body)
+
+	assert.Equal(t, `{"year":2019}`, string(b))
+}
+
 func TestFieldsHeader(t *testing.T) {
 	upstream, gateway := createServers(-1, false)
 	defer upstream.Close()
