@@ -212,6 +212,14 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 		oaRouteTested, usePreloadLinks bool
 	)
 	newBody := v.traverseJSON(currentBody, tree, len(f) > 0, func(n *node, val string) string {
+		// A pure field projection (a "fields" leaf with no relation to push and no child
+		// selector to propagate) is not a relation: leave its value untouched. Routing it
+		// through the URL machinery below would percent-encode plain strings and coerce
+		// numbers to strings (https://github.com/dunglas/vulcain/issues/96).
+		if !n.preload && !n.hasChildren(preload) && !n.hasChildren(fields) {
+			return ""
+		}
+
 		var (
 			u        *url.URL
 			useOA    bool
