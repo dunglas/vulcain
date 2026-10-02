@@ -360,8 +360,8 @@ The `/books/*/author` JSON Pointer selects the `author` field of every objects i
 
 The `*` character is escaped by encoding it as the `~2` character sequence.
 
-When a reference token matches a member name or an array index exactly, the server `MUST` apply the
-selector containing this token instead of the one containing `*`.
+Within each directive, when a reference token matches a member name or an array index exactly, the
+server `MUST` apply the selector containing this token instead of the one containing `*`.
 
 By design, this selector is simple and limited. Simple selectors make it easier to limit the
 complexity of requests executed by the server.

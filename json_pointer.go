@@ -15,6 +15,7 @@ type node struct {
 	path          string
 	parent        *node
 	children      []*node
+	sources       [2]*node
 }
 
 // _type is the type of operation to apply, can be Preload or Fields
@@ -48,6 +49,13 @@ func (n *node) importPointers(t _type, pointers httpsfv.List) {
 
 // String returns a JSON pointer
 func (n *node) String() string {
+	if n.sources[preload] != nil {
+		return n.sources[preload].String()
+	}
+	if n.sources[fields] != nil {
+		return n.sources[fields].String()
+	}
+
 	if n.parent == nil {
 		return "/"
 	}
@@ -96,7 +104,12 @@ func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {
 
 // hasChildren checks if the node has at least a child of the given type
 func (n *node) hasChildren(t _type) bool {
-	for _, c := range n.children {
+	source := n.source(t)
+	if source == nil {
+		return false
+	}
+
+	for _, c := range source.children {
 		if t == preload && c.preload {
 			return true
 		}
@@ -108,10 +121,53 @@ func (n *node) hasChildren(t _type) bool {
 	return false
 }
 
-// child returns the child matching the given key, falling back to the wildcard
+func (n *node) source(t _type) *node {
+	if n.sources[preload] != nil || n.sources[fields] != nil {
+		return n.sources[t]
+	}
+
+	return n
+}
+
+// child applies exact-over-wildcard precedence independently for each directive.
 func (n *node) child(key []byte) *node {
+	p := n.match(preload, key)
+	f := n.match(fields, key)
+	if p == f {
+		return p
+	}
+	if p != nil && f == nil && !p.fields {
+		return p
+	}
+	if f != nil && p == nil && !f.preload {
+		return f
+	}
+
+	child := &node{sources: [2]*node{p, f}}
+	if p != nil {
+		child.preload = true
+		child.preloadParams = p.preloadParams
+	}
+	if f != nil {
+		child.fields = true
+		child.fieldsParams = f.fieldsParams
+	}
+
+	return child
+}
+
+func (n *node) match(t _type, key []byte) *node {
+	source := n.source(t)
+	if source == nil {
+		return nil
+	}
+
 	var wildcard *node
-	for _, c := range n.children {
+	for _, c := range source.children {
+		if (t == preload && !c.preload) || (t == fields && !c.fields) {
+			continue
+		}
+
 		if c.path == "*" {
 			wildcard = c
 			continue
@@ -127,7 +183,15 @@ func (n *node) child(key []byte) *node {
 
 // httpList transforms the node in an HTTP Structured Field List
 func (n *node) httpList(t _type, prefix string) httpsfv.List {
-	if len(n.children) == 0 {
+	source := n.source(t)
+	if source == nil {
+		return nil
+	}
+	if source != n {
+		return source.httpList(t, prefix)
+	}
+
+	if !n.hasChildren(t) {
 		if prefix == "" {
 			return httpsfv.List{}
 		}

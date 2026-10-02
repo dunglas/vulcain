@@ -81,7 +81,7 @@ func (t *traverser) walk(n *node, filter bool) (int, int, []byte, error) {
 	case '"', '0':
 		return t.relation(n)
 	case '{', '[':
-		if len(n.children) > 0 {
+		if n.hasChildren(preload) || n.hasChildren(fields) {
 			return t.container(n, filter && n.hasChildren(fields))
 		}
 	}
