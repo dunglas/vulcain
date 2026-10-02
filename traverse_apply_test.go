@@ -46,6 +46,15 @@ func TestApplyFieldsAndPreloadMatchIndependently(t *testing.T) {
 			links:   []string{"</books/1?fields=%22%2Ftitle%22&preload=%22%2Fauthor%22>; rel=preload; as=fetch"},
 		},
 		{
+			name:    "explicit fields selection",
+			body:    `{"a":{"b":"/rel","c":"2"},"d":"3"}`,
+			fields:  `"/a", "/a/b/x"`,
+			preload: `"/a/b"`,
+			query:   true,
+			want:    `{"a":{"b":"/rel","c":"2"}}`,
+			links:   []string{"</rel>; rel=preload; as=fetch"},
+		},
+		{
 			name:    "exact fields and wildcard preload URLs",
 			body:    `{"items":["/books/1","/books/2"]}`,
 			fields:  `"/items/0/title"`,

@@ -76,7 +76,7 @@ func (n *node) String() string {
 // the number of pointer segments, which an attacker controls through the directive value
 func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {
 	n := root
-	for _, part := range parts {
+	for i, part := range parts {
 		var child *node
 		for _, c := range n.children {
 			if c.path == part {
@@ -90,13 +90,19 @@ func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {
 			n.children = append(n.children, child)
 		}
 
+		// Params are kept where the selector ends, which also flags it as an explicit selection
+		last := i == len(parts)-1
 		switch t {
 		case preload:
 			child.preload = true
-			child.preloadParams = append(child.preloadParams, params)
+			if last {
+				child.preloadParams = append(child.preloadParams, params)
+			}
 		case fields:
 			child.fields = true
-			child.fieldsParams = append(child.fieldsParams, params)
+			if last {
+				child.fieldsParams = append(child.fieldsParams, params)
+			}
 		}
 
 		n = child
@@ -105,7 +111,7 @@ func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {
 
 // hasChildren checks if the node has at least a child of the given type
 func (n *node) hasChildren(t _type) bool {
-	source := n.source(t)
+	source := n.descendants(t)
 	if source == nil {
 		return false
 	}
@@ -120,6 +126,17 @@ func (n *node) hasChildren(t _type) bool {
 	}
 
 	return false
+}
+
+// descendants returns the node holding the selectors of type t below n
+// A fields selector ending at n selects its whole value, so deeper fields selectors cannot narrow it.
+func (n *node) descendants(t _type) *node {
+	source := n.source(t)
+	if source == nil || (t == fields && len(source.fieldsParams) > 0) {
+		return nil
+	}
+
+	return source
 }
 
 func (n *node) source(t _type) *node {
@@ -158,7 +175,7 @@ func (n *node) child(key []byte) *node {
 }
 
 func (n *node) match(t _type, key []byte) *node {
-	source := n.source(t)
+	source := n.descendants(t)
 	if source == nil {
 		return nil
 	}

@@ -18,7 +18,7 @@ func TestImportPointers(t *testing.T) {
 	n.importPointers(fields, httpsfv.List{httpsfv.NewItem("/foo/bat"), httpsfv.NewItem("/baz"), httpsfv.NewItem("/baz/*"), httpsfv.NewItem("/baz")})
 
 	assert.Equal(t, httpsfv.List{httpsfv.NewItem("/foo/*"), httpsfv.NewItem("/bar/foo/*/baz")}, n.httpList(preload, ""))
-	assert.Equal(t, httpsfv.List{httpsfv.NewItem("/foo/bat"), httpsfv.NewItem("/baz/*")}, n.httpList(fields, ""))
+	assert.Equal(t, httpsfv.List{httpsfv.NewItem("/foo/bat"), httpsfv.NewItem("/baz"), httpsfv.NewItem("/baz")}, n.httpList(fields, ""))
 }
 
 func TestString(t *testing.T) {

@@ -229,6 +229,7 @@ The `Fields` HTTP header `MUST` contain a selector (see #Selector). The server `
 the fields matching this selector.
 
 All matched fields `MUST` be returned if they exist. Other fields of the resource `MAY` be omitted.
+A matched field is returned in its entirety, even if other selectors match its descendants.
 
 ## Fields Example
 

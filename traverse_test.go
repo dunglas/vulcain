@@ -195,3 +195,29 @@ func TestTraverseJSONRelationReplacementInvalidUTF8(t *testing.T) {
 	})
 	assert.Equal(t, `{"foo":"/a�"}`, string(result))
 }
+
+func TestTraverseJSONFieldsSelectionNotNarrowed(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		pointers []string
+		body     string
+		want     string
+	}{
+		{"parent first", []string{"/a", "/a/b"}, `{"a":{"b":"1","c":"2"},"d":"3"}`, `{"a":{"b":"1","c":"2"}}`},
+		{"child first", []string{"/a/b", "/a"}, `{"a":{"b":"1","c":"2"},"d":"3"}`, `{"a":{"b":"1","c":"2"}}`},
+		{"wildcard", []string{"/items/*", "/items/*/t"}, `{"items":[{"t":"a","x":"1"},{"t":"b","x":"2"}]}`, `{"items":[{"t":"a","x":"1"},{"t":"b","x":"2"}]}`},
+		{"exact index", []string{"/items/0", "/items/*/t"}, `{"items":[{"t":"a","x":"1"},{"t":"b","x":"2"}]}`, `{"items":[{"t":"a","x":"1"},{"t":"b"}]}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			n := &node{}
+			var pointers httpsfv.List
+			for _, pointer := range test.pointers {
+				pointers = append(pointers, httpsfv.NewItem(pointer))
+			}
+			n.importPointers(fields, pointers)
+
+			result := New().traverseJSON([]byte(test.body), n, true, urlRewriteRelationHandler)
+			assert.Equal(t, test.want, string(result))
+		})
+	}
+}
