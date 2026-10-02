@@ -63,6 +63,45 @@ func TestApplyFieldsAndPreloadMatchIndependently(t *testing.T) {
 	}
 }
 
+func TestApplyFieldsPreservesAcceptedInvalidUnicode(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		body   string
+		fields string
+		want   string
+	}{
+		{
+			name:   "unpaired surrogate value",
+			body:   `{"title":"\ud800","ignored":true}`,
+			fields: `"/title"`,
+			want:   `{"title":"\ud800"}`,
+		},
+		{
+			name:   "unpaired surrogate member name",
+			body:   `{"\ud800":{"title":"A","ignored":true}}`,
+			fields: `"/*/title"`,
+			want:   `{"\ud800":{"title":"A"}}`,
+		},
+		{
+			name:   "invalid UTF-8 value",
+			body:   "{\"title\":\"\xff\",\"ignored\":true}",
+			fields: `"/title"`,
+			want:   "{\"title\":\"\xff\"}",
+		},
+		{
+			name:   "invalid UTF-8 member name",
+			body:   "{\"\xff\":{\"title\":\"A\",\"ignored\":true}}",
+			fields: `"/*/title"`,
+			want:   "{\"\xff\":{\"title\":\"A\"}}",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			body, _ := applyDirectives(t, test.body, test.fields, "", false)
+			assert.Equal(t, test.want, string(body))
+		})
+	}
+}
+
 func applyDirectives(t *testing.T, body, fields, preload string, query bool) ([]byte, http.Header) {
 	t.Helper()
 	v := vulcain.New()

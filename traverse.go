@@ -79,7 +79,9 @@ func (v *Vulcain) traverseJSON(body []byte, tree *node, filter bool, relationHan
 func (t *traverser) walk(n *node, filter bool) (int, int, []byte, error) {
 	switch t.dec.PeekKind() {
 	case '"', '0':
-		return t.relation(n)
+		if n.preload || n.hasChildren(preload) || n.hasChildren(fields) {
+			return t.relation(n)
+		}
 	case '{', '[':
 		if n.hasChildren(preload) || n.hasChildren(fields) {
 			return t.container(n, filter && n.hasChildren(fields))
@@ -108,10 +110,8 @@ func (t *traverser) relation(n *node) (int, int, []byte, error) {
 
 	rel := string(raw)
 	if raw.Kind() == '"' {
-		b, err := jsontext.AppendUnquote(nil, raw)
-		if err != nil {
-			return 0, 0, nil, err
-		}
+		// Unquoting replaces the invalid Unicode accepted by the decoder.
+		b, _ := jsontext.AppendUnquote(nil, raw)
 		rel = string(b)
 	}
 
@@ -120,10 +120,7 @@ func (t *traverser) relation(n *node) (int, int, []byte, error) {
 		return start, end, nil, nil
 	}
 
-	value, err := jsontext.AppendQuote(nil, newValue)
-	if err != nil {
-		return start, end, nil, nil
-	}
+	value, _ := jsontext.AppendQuote(nil, newValue)
 
 	return start, end, value, nil
 }
@@ -161,9 +158,7 @@ func (t *traverser) container(n *node, filter bool) (int, int, []byte, error) {
 			nameEnd := int(t.dec.InputOffset())
 			name = t.body[nameEnd-len(raw) : nameEnd]
 
-			if t.key, err = jsontext.AppendUnquote(t.key[:0], name); err != nil {
-				return 0, 0, nil, err
-			}
+			t.key, _ = jsontext.AppendUnquote(t.key[:0], name)
 		} else {
 			t.key = strconv.AppendInt(t.key[:0], int64(i), 10)
 		}
