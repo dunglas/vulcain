@@ -241,7 +241,7 @@ func (v *Vulcain) Apply(req *http.Request, rw http.ResponseWriter, responseBody 
 			h := rw.Header()
 
 			// If responseHeaders is not the same as rw.Header() (e.g. when using the built-in reverse proxy)
-			// temporarly copy Link headers to send the 103 response
+			// temporarily copy Link headers to send the 103 response
 			_, ok := h["Link"]
 			if !ok {
 				h["Link"] = responseHeaders["Link"]

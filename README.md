@@ -15,32 +15,35 @@ It supports [hypermedia APIs](https://restfulapi.net/hateoas/) (e.g. any API cre
 [tabs]
 
 ### Preload
+
 ![Vulcain Schema](schemas/vulcain_doc_main_200.png)
 
 ### Preload + Early Hints
+
 ![Vulcain Schema](schemas/vulcain_doc_main_early_hints.png)
 
 ### Server push
+
 ![Vulcain Schema](schemas/vulcain_doc_main_server_push.png)
 
 [/tabs]
 
 Grab What You Need... Burn The REST!
 
-* [Introduction](#introduction)
-  * [Pushing Relations](#pushing-relations)
-  * [Filtering Resources](#filtering-resources)
-* [Gateway Server](docs/gateway/)
-  * [Caddy Web Server Module](docs/gateway/caddy.md)
-  * [Mapping a Non-Hypermedia API using OpenAPI](docs/gateway/openapi.md)
-  * [Legacy Standalone Server](docs/gateway/install.md)
-  * [Legacy Configuration](docs/gateway/config.md)
-* [Comparison with GraphQL and Other API Formats](docs/graphql.md)
-* [Using GraphQL as Query Language for Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain)
-* [Demo API](CONTRIBUTING.md)
-* [Cache Considerations](docs/cache.md)
-* [Formal Specification](spec/vulcain.md)
-* [Getting Help](docs/help.md)
+- [Introduction](#introduction)
+  - [Pushing Relations](#pushing-relations)
+  - [Filtering Resources](#filtering-resources)
+- [Gateway Server](docs/gateway/)
+  - [Caddy Web Server Module](docs/gateway/caddy.md)
+  - [Mapping a Non-Hypermedia API using OpenAPI](docs/gateway/openapi.md)
+  - [Legacy Standalone Server](docs/gateway/install.md)
+  - [Legacy Configuration](docs/gateway/config.md)
+- [Comparison with GraphQL and Other API Formats](docs/graphql.md)
+- [Using GraphQL as Query Language for Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain)
+- [Demo API](CONTRIBUTING.md)
+- [Cache Considerations](docs/cache.md)
+- [Formal Specification](spec/vulcain.md)
+- [Getting Help](docs/help.md)
 
 The protocol has been published as [an Internet Draft](https://datatracker.ietf.org/doc/draft-dunglas-vulcain/) that [is maintained in this repository](spec/vulcain.md).
 
@@ -51,7 +54,7 @@ It's free software (AGPL) written in Go. A Docker image is provided.
 
 Over the years, several formats have been created to fix performance bottlenecks impacting web APIs: [over fetching, under fetching](https://stackoverflow.com/a/44568365/1352334), [the n+1 problem](https://restfulapi.net/rest-api-n-1-problem/)...
 
-[Current solutions for these problems (GraphQL, JSON:API's embedded resources and sparse fieldsets, ...)](docs/graphql.md) are smart [network hacks](https://apisyouwonthate.com/blog/lets-stop-building-apis-around-a-network-hack) for HTTP/1. But these hacks come with (too) many drawbacks when it comes to HTTP cache, logs and even security.
+[Current solutions for these problems (GraphQL, JSON:API embedded resources and sparse fieldsets, ...)](docs/graphql.md) are smart [network hacks](https://apisyouwonthate.com/blog/lets-stop-building-apis-around-a-network-hack) for HTTP/1. But these hacks come with (too) many drawbacks when it comes to HTTP cache, logs and even security.
 
 Fortunately, thanks to the new features introduced in HTTP/2, it's now possible to create true REST APIs fixing these problems with ease and class! Here comes Vulcain!
 
@@ -62,12 +65,15 @@ See also [the comparison between Vulcain and GraphQL and other API formats](docs
 [tabs]
 
 ### Preload
+
 ![Preload Schema](schemas/vulcain_doc_preload_200.png)
 
 ### Preload + Early Hints
+
 ![Preload Schema](schemas/vulcain_doc_preload_early_hints.png)
 
 ### Server push
+
 ![Preload Schema](schemas/vulcain_doc_preload_server_push.png)
 
 [/tabs]
@@ -78,10 +84,7 @@ Considering the following resources:
 
 ```json
 {
-    "member": [
-        "/books/1",
-        "/books/2"
-    ]
+  "member": ["/books/1", "/books/2"]
 }
 ```
 
@@ -89,8 +92,8 @@ Considering the following resources:
 
 ```json
 {
-    "title": "1984",
-    "author": "/authors/1"
+  "title": "1984",
+  "author": "/authors/1"
 }
 ```
 
@@ -98,8 +101,8 @@ Considering the following resources:
 
 ```json
 {
-    "title": "Homage to Catalonia",
-    "author": "/authors/1"
+  "title": "Homage to Catalonia",
+  "author": "/authors/1"
 }
 ```
 
@@ -107,8 +110,8 @@ Considering the following resources:
 
 ```json
 {
-    "givenName": "George",
-    "familyName": "Orwell"
+  "givenName": "George",
+  "familyName": "Orwell"
 }
 ```
 
@@ -151,12 +154,15 @@ Alternatively to HTTP headers, the `preload` query parameter can be used:
 [tabs]
 
 #### Preload
+
 ![Preload Query Schema](schemas/vulcain_doc_preload_query_200.png)
 
 #### Preload + Early Hints
+
 ![Preload Query Schema](schemas/vulcain_doc_preload_query_early_hints.png)
 
 #### Server push
+
 ![Preload Query Schema](schemas/vulcain_doc_preload_query_server_push.png)
 
 [/tabs]
@@ -166,19 +172,22 @@ Alternatively to HTTP headers, the `preload` query parameter can be used:
 [tabs]
 
 ### Preload
+
 ![Filter Schema](schemas/vulcain_doc_filter_200.png)
 
 ### Preload + Early Hints
+
 ![Filter Schema](schemas/vulcain_doc_filter_early_hints.png)
 
 ### Server push
+
 ![Filter Schema](schemas/vulcain_doc_filter_server_push.png)
 
 [/tabs]
 
 The `Fields` HTTP header allows the client to ask the server to return only the specified fields of the requested resource, and of the preloaded related resources.
 
-Multiple `Fields` HTTP headers can be passed. All fields matching at least one of these headers will be returned. Other fields of the resource  will be omitted.
+Multiple `Fields` HTTP headers can be passed. All fields matching at least one of these headers will be returned. Other fields of the resource will be omitted.
 
 Considering the following resources:
 
@@ -186,9 +195,9 @@ Considering the following resources:
 
 ```json
 {
-    "title": "1984",
-    "genre": "novel",
-    "author": "/authors/1"
+  "title": "1984",
+  "genre": "novel",
+  "author": "/authors/1"
 }
 ```
 
@@ -196,8 +205,8 @@ Considering the following resources:
 
 ```json
 {
-    "givenName": "George",
-    "familyName": "Orwell"
+  "givenName": "George",
+  "familyName": "Orwell"
 }
 ```
 
@@ -213,8 +222,8 @@ A Vulcain server will return a response containing the following JSON document:
 
 ```json
 {
-    "genre": "novel",
-    "author": "/authors/1"
+  "genre": "novel",
+  "author": "/authors/1"
 }
 ```
 
@@ -222,7 +231,7 @@ It will also push the following filtered `/authors/1` resource:
 
 ```json
 {
-    "familyName": "Orwell"
+  "familyName": "Orwell"
 }
 ```
 
@@ -233,31 +242,34 @@ Alternatively to HTTP headers, the `fields` query parameter can be used to filte
 [tabs]
 
 #### Preload
+
 ![Fields Schema](schemas/vulcain_doc_filter_query_200.png)
 
 #### Preload + early hints
+
 ![Fields Schema](schemas/vulcain_doc_filter_query_early_hints.png)
 
 #### Server push
+
 ![Fields Schema](schemas/vulcain_doc_filter_query_server_push.png)
 
 [/tabs]
 
 ## See Also
 
-* [Mapping a non-hypermedia API using OpenAPI](docs/gateway/openapi.md)
-* [Cache considerations](docs/cache.md)
-* [Using GraphQL with Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain)
-* [Using other selectors such as XPath and CSS selectors for non-JSON documents](spec/vulcain.md#selectors) (only JSON Pointer [is currently supported](https://github.com/dunglas/vulcain/issues/3) by the Gateway Server)
+- [Mapping a non-hypermedia API using OpenAPI](docs/gateway/openapi.md)
+- [Cache considerations](docs/cache.md)
+- [Using GraphQL with Vulcain](docs/graphql.md#using-graphql-as-query-language-for-vulcain)
+- [Using other selectors such as XPath and CSS selectors for non-JSON documents](spec/vulcain.md#selectors) (only JSON Pointer [is currently supported](https://github.com/dunglas/vulcain/issues/3) by the Gateway Server)
 
-## License and Copyright 
+## License and Copyright
 
 tl;dr:
 
-* proprietary software **can** implement the Vulcain specification
-* proprietary software **can** be used behind the Vulcain Gateway Server without having to share their sources
-* modifications made to the Vulcain Gateway Server **must** be shared
-* alternatively, a commercial license is available for the Vulcain Gateway Server
+- proprietary software **can** implement the Vulcain specification
+- proprietary software **can** be used behind the Vulcain Gateway Server without having to share their sources
+- modifications made to the Vulcain Gateway Server **must** be shared
+- alternatively, a commercial license is available for the Vulcain Gateway Server
 
 [The specification](spec/vulcain.md) is available under [the IETF copyright policy](https://trustee.ietf.org/copyright-faq.html). The Vulcain **specification** can be implemented by any software, including proprietary software.
 
