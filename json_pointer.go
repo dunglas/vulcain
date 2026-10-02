@@ -108,6 +108,23 @@ func (n *node) hasChildren(t _type) bool {
 	return false
 }
 
+// child returns the child matching the given key, falling back to the wildcard
+func (n *node) child(key []byte) *node {
+	var wildcard *node
+	for _, c := range n.children {
+		if c.path == "*" {
+			wildcard = c
+			continue
+		}
+
+		if string(key) == unescape(c.path) {
+			return c
+		}
+	}
+
+	return wildcard
+}
+
 // httpList transforms the node in an HTTP Structured Field List
 func (n *node) httpList(t _type, prefix string) httpsfv.List {
 	if len(n.children) == 0 {

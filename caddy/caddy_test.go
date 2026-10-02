@@ -25,7 +25,7 @@ func TestVulcain(t *testing.T) {
 	  vulcain
 	}`, "caddyfile")
 
-	resp, _ := tester.AssertGetResponse(`http://localhost:9080/books.jsonld?preload="/hydra:member/*"&fields="/hydra:member/*","/foo/0/bar/*/a"`, 200, `{"hydra:member":["/books-1.jsonld"],"foo":[{"bar":[{"a":"b"},{}]}]}`)
+	resp, _ := tester.AssertGetResponse(`http://localhost:9080/books.jsonld?preload="/hydra:member/*"&fields="/hydra:member/*","/foo/0/bar/*/a"`, 200, `{"hydra:member":["/books-1.jsonld"],"foo":[{"bar":[{"a":"b"},{}]}]}`+"\n")
 
 	// Unfortunately, Go's HTTP client doesn't support Pushes yet (https://github.com/golang/go/issues/18594), so we test the fallback
 	if !reflect.DeepEqual(resp.Header["Link"], []string{"</books-1.jsonld>; rel=preload; as=fetch"}) {
