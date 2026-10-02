@@ -16,7 +16,6 @@ import (
 
 	"github.com/dunglas/vulcain/fixtures/api"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/http2"
 )
 
 const testAddr = "127.0.0.1:4343"
@@ -47,7 +46,7 @@ func createTestingUtils(openAPIfile string, maxPushes int) (*httptest.Server, *s
 	}()
 
 	// This is a self-signed certificate
-	transport := &http2.Transport{
+	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := http.Client{Transport: transport, Timeout: time.Duration(100 * time.Millisecond)}
