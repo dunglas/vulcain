@@ -79,6 +79,7 @@ func (v *Vulcain) traverseJSON(body []byte, tree *node, filter bool, relationHan
 func (t *traverser) walk(n *node, filter bool) (int, int, []byte, error) {
 	switch t.dec.PeekKind() {
 	case '"', '0':
+		// Pure field projections aren't relations (https://github.com/dunglas/vulcain/issues/96)
 		if n.preload || n.hasChildren(preload) || n.hasChildren(fields) {
 			return t.relation(n)
 		}

@@ -15,7 +15,8 @@ type node struct {
 	path          string
 	parent        *node
 	children      []*node
-	sources       [2]*node
+	// sources holds the per-directive matches of a merged node, it is empty for nodes of the tree
+	sources [2]*node
 }
 
 // _type is the type of operation to apply, can be Preload or Fields
