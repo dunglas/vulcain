@@ -229,6 +229,7 @@ The `Fields` HTTP header `MUST` contain a selector (see #Selector). The server `
 the fields matching this selector.
 
 All matched fields `MUST` be returned if they exist. Other fields of the resource `MAY` be omitted.
+A matched field is returned in its entirety, even if other selectors match its descendants.
 
 ## Fields Example
 
@@ -337,7 +338,7 @@ For JSON documents, the default selector format is JSON Pointer [@!RFC6901]. How
 doesn't provide a mechanism to select entire collections.
 
 This specification defines an extension to the JSON Pointer format allowing to select every element
-of a collection, the `*` character.
+of an array or every member value of an object, the `*` character.
 
 Considering the following JSON document:
 
@@ -359,6 +360,9 @@ Considering the following JSON document:
 The `/books/*/author` JSON Pointer selects the `author` field of every objects in the `books` array.
 
 The `*` character is escaped by encoding it as the `~2` character sequence.
+
+Within each directive, when a reference token matches a member name or an array index exactly, the
+server `MUST` apply the selector containing this token instead of the one containing `*`.
 
 By design, this selector is simple and limited. Simple selectors make it easier to limit the
 complexity of requests executed by the server.

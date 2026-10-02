@@ -15,6 +15,8 @@ type node struct {
 	path          string
 	parent        *node
 	children      []*node
+	// sources holds the per-directive matches of a merged node, it is empty for nodes of the tree
+	sources [2]*node
 }
 
 // _type is the type of operation to apply, can be Preload or Fields
@@ -48,6 +50,13 @@ func (n *node) importPointers(t _type, pointers httpsfv.List) {
 
 // String returns a JSON pointer
 func (n *node) String() string {
+	if n.sources[preload] != nil {
+		return n.sources[preload].String()
+	}
+	if n.sources[fields] != nil {
+		return n.sources[fields].String()
+	}
+
 	if n.parent == nil {
 		return "/"
 	}
@@ -67,7 +76,7 @@ func (n *node) String() string {
 // the number of pointer segments, which an attacker controls through the directive value
 func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {
 	n := root
-	for _, part := range parts {
+	for i, part := range parts {
 		var child *node
 		for _, c := range n.children {
 			if c.path == part {
@@ -81,13 +90,19 @@ func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {
 			n.children = append(n.children, child)
 		}
 
+		// Params are kept where the selector ends, which also flags it as an explicit selection
+		last := i == len(parts)-1
 		switch t {
 		case preload:
 			child.preload = true
-			child.preloadParams = append(child.preloadParams, params)
+			if last {
+				child.preloadParams = append(child.preloadParams, params)
+			}
 		case fields:
 			child.fields = true
-			child.fieldsParams = append(child.fieldsParams, params)
+			if last {
+				child.fieldsParams = append(child.fieldsParams, params)
+			}
 		}
 
 		n = child
@@ -96,7 +111,12 @@ func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {
 
 // hasChildren checks if the node has at least a child of the given type
 func (n *node) hasChildren(t _type) bool {
-	for _, c := range n.children {
+	source := n.descendants(t)
+	if source == nil {
+		return false
+	}
+
+	for _, c := range source.children {
 		if t == preload && c.preload {
 			return true
 		}
@@ -108,9 +128,88 @@ func (n *node) hasChildren(t _type) bool {
 	return false
 }
 
+// descendants returns the node holding the selectors of type t below n
+// A fields selector ending at n selects its whole value, so deeper fields selectors cannot narrow it.
+func (n *node) descendants(t _type) *node {
+	source := n.source(t)
+	if source == nil || (t == fields && len(source.fieldsParams) > 0) {
+		return nil
+	}
+
+	return source
+}
+
+func (n *node) source(t _type) *node {
+	if n.sources[preload] != nil || n.sources[fields] != nil {
+		return n.sources[t]
+	}
+
+	return n
+}
+
+// child applies exact-over-wildcard precedence independently for each directive.
+func (n *node) child(key []byte) *node {
+	p := n.match(preload, key)
+	f := n.match(fields, key)
+	if p == f {
+		return p
+	}
+	if p != nil && f == nil && !p.fields {
+		return p
+	}
+	if f != nil && p == nil && !f.preload {
+		return f
+	}
+
+	child := &node{sources: [2]*node{p, f}}
+	if p != nil {
+		child.preload = true
+		child.preloadParams = p.preloadParams
+	}
+	if f != nil {
+		child.fields = true
+		child.fieldsParams = f.fieldsParams
+	}
+
+	return child
+}
+
+func (n *node) match(t _type, key []byte) *node {
+	source := n.descendants(t)
+	if source == nil {
+		return nil
+	}
+
+	var wildcard *node
+	for _, c := range source.children {
+		if (t == preload && !c.preload) || (t == fields && !c.fields) {
+			continue
+		}
+
+		if c.path == "*" {
+			wildcard = c
+			continue
+		}
+
+		if string(key) == unescape(c.path) {
+			return c
+		}
+	}
+
+	return wildcard
+}
+
 // httpList transforms the node in an HTTP Structured Field List
 func (n *node) httpList(t _type, prefix string) httpsfv.List {
-	if len(n.children) == 0 {
+	source := n.source(t)
+	if source == nil {
+		return nil
+	}
+	if source != n {
+		return source.httpList(t, prefix)
+	}
+
+	if !n.hasChildren(t) {
 		if prefix == "" {
 			return httpsfv.List{}
 		}

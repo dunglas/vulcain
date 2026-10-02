@@ -91,5 +91,5 @@ func Example() {
 	// Output:
 	// [</authors/orwell.json>; rel=preload; as=fetch]
 	//
-	// {"author":"/authors/orwell.json","title":"1984"}
+	// {"title":"1984","author":"/authors/orwell.json"}
 }
