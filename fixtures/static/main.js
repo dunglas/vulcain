@@ -1,7 +1,7 @@
 const apiURL = "https://localhost:3000";
 
 const cache = {};
-const result = document.getElementById('result');
+const result = document.getElementById("result");
 async function fetchRel(rel) {
   // Prevent fetching twice the same relation
   if (cache[rel]) {
@@ -10,7 +10,9 @@ async function fetchRel(rel) {
 
   // use a Promise to wait for pushed relation in the local cache
   let res;
-  cache[rel] = new Promise((resolve) => { res = resolve });
+  cache[rel] = new Promise((resolve) => {
+    res = resolve;
+  });
 
   const resp = await fetch(apiURL + rel, { credentials: "include" });
   const json = await resp.json();
@@ -18,8 +20,10 @@ async function fetchRel(rel) {
   return json;
 }
 
-(async function() {
-  const books = await fetchRel(`/books.jsonld?preload="/hydra:member/*/author"`);
+(async function () {
+  const books = await fetchRel(
+    `/books.jsonld?preload="/hydra:member/*/author"`,
+  );
   result.innerText = JSON.stringify(books, null, 2);
 
   books["hydra:member"].forEach(async (bookId, i) => {
