@@ -126,3 +126,29 @@ func TestTraverseJSONFieldsExactMatchOverWildcard(t *testing.T) {
 	result := New().traverseJSON([]byte(`{"m": {"b": {"a": "1", "c": "2"}, "e": {"a": "3", "c": "4"}, "*": {"a": "5", "d": "6"}}}`), n, true, urlRewriteRelationHandler)
 	assert.Equal(t, `{"m":{"b":{"c":"2"},"e":{"a":"3"},"*":{"d":"6"}}}`, string(result))
 }
+
+func TestTraverseJSONFieldsArrayIndices(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		pointers []string
+		body     string
+		want     string
+	}{
+		{"single", []string{"/foo/2"}, `{"foo":["a","b","c","d"]}`, `{"foo":[null,null,"c"]}`},
+		{"multiple", []string{"/foo/3/id", "/foo/1/id"}, `{"foo":[{"id":"a"},{"id":"b"},{"id":"c"},{"id":"d"}]}`, `{"foo":[null,{"id":"b"},null,{"id":"d"}]}`},
+		{"first", []string{"/foo/0", "/foo/2"}, `{"foo":["a","b","c","d"]}`, `{"foo":["a",null,"c"]}`},
+		{"missing", []string{"/foo/8"}, `{"foo":["a","b","c"]}`, `{"foo":[]}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			n := &node{}
+			var pointers httpsfv.List
+			for _, pointer := range test.pointers {
+				pointers = append(pointers, httpsfv.NewItem(pointer))
+			}
+			n.importPointers(fields, pointers)
+
+			result := New().traverseJSON([]byte(test.body), n, true, urlRewriteRelationHandler)
+			assert.Equal(t, test.want, string(result))
+		})
+	}
+}

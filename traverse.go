@@ -149,6 +149,7 @@ func (t *traverser) container(n *node, filter bool) (int, int, []byte, error) {
 	}
 
 	last := start
+	nextIndex := 0
 	for i := 0; t.dec.PeekKind() != closing; i++ {
 		var name []byte
 		if isObject {
@@ -182,6 +183,16 @@ func (t *traverser) container(n *node, filter bool) (int, int, []byte, error) {
 		}
 
 		if filter {
+			if !isObject {
+				for nextIndex < i {
+					if len(value) > 1 {
+						value = append(value, ',')
+					}
+					value = append(value, "null"...)
+					nextIndex++
+				}
+				nextIndex++
+			}
 			if len(value) > 1 {
 				value = append(value, ',')
 			}
