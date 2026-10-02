@@ -1,0 +1,5 @@
+[codespell]
+check-hidden =
+skip = */go.mod,*/go.sum,*.log,.git
+# TE is an HTTP header
+ignore-words-list = te
