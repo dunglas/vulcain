@@ -102,3 +102,27 @@ func TestTraverseJSONInvalid(t *testing.T) {
 	result := New().traverseJSON([]byte(`{"foo": "/foo", "bar"`), n, true, urlRewriteRelationHandler)
 	assert.Equal(t, `{"foo": "/foo", "bar"`, string(result))
 }
+
+func TestTraverseJSONPreloadObjectWildcard(t *testing.T) {
+	n := &node{}
+	n.importPointers(preload, httpsfv.List{httpsfv.NewItem("/links/*/href/rel")})
+
+	result := New().traverseJSON([]byte(`{"links": {"self": {"href": "/a"}, "author": {"href": "/b"}}}`), n, false, urlRewriteRelationHandler)
+	assert.Equal(t, `{"links": {"self": {"href": "/a?preload=%22%2Frel%22"}, "author": {"href": "/b?preload=%22%2Frel%22"}}}`, string(result))
+}
+
+func TestTraverseJSONFieldsObjectWildcard(t *testing.T) {
+	n := &node{}
+	n.importPointers(fields, httpsfv.List{httpsfv.NewItem("/links/*/href")})
+
+	result := New().traverseJSON([]byte(`{"links": {"self": {"href": "/a", "title": "A"}, "author": {"href": "/b"}}, "x": "y"}`), n, true, urlRewriteRelationHandler)
+	assert.Equal(t, `{"links":{"self":{"href":"/a"},"author":{"href":"/b"}}}`, string(result))
+}
+
+func TestTraverseJSONFieldsExactMatchOverWildcard(t *testing.T) {
+	n := &node{}
+	n.importPointers(fields, httpsfv.List{httpsfv.NewItem("/m/*/a"), httpsfv.NewItem("/m/b/c"), httpsfv.NewItem("/m/~2/d")})
+
+	result := New().traverseJSON([]byte(`{"m": {"b": {"a": "1", "c": "2"}, "e": {"a": "3", "c": "4"}, "*": {"a": "5", "d": "6"}}}`), n, true, urlRewriteRelationHandler)
+	assert.Equal(t, `{"m":{"b":{"c":"2"},"e":{"a":"3"},"*":{"d":"6"}}}`, string(result))
+}
