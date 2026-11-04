@@ -2,8 +2,8 @@
 
 ## Community Support
 
-* [StackOverflow: ask question on  using the `api-platform.com` tag](https://stackoverflow.com/questions/tagged/api-platform.com)
-* [Slack: chat with the community on the `#vulcain` channel on Symfony's Slack](https://symfony.com/slack)
+- [Stack Overflow: ask question on using the `api-platform.com` tag](https://stackoverflow.com/questions/tagged/api-platform.com)
+- [Slack: chat with the community on the `#vulcain` channel on Symfony's Slack](https://symfony.com/slack)
 
 ## Commercial Support
 

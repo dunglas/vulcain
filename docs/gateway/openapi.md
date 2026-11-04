@@ -10,8 +10,8 @@ Imagine a web API having the following structure:
 
 ```json
 {
-    "title": "1984",
-    "author": 1
+  "title": "1984",
+  "author": 1
 }
 ```
 
@@ -19,19 +19,19 @@ Imagine a web API having the following structure:
 
 ```json
 {
-    "givenName": "George",
-    "familyName": "Orwell"
+  "givenName": "George",
+  "familyName": "Orwell"
 }
 ```
 
-The link between books and authors, while not explicitly represented as an URL, can be documented in an OpenAPI v3 file:
+The link between books and authors, while not explicitly represented as a URL, can be documented in an OpenAPI v3 file:
 
 ```yaml
 # openapi.yaml
 openapi: 3.0.0
 # ...
 paths:
-  '/books/{id}':
+  "/books/{id}":
     get:
       # ...
       responses:
@@ -40,8 +40,8 @@ paths:
             author:
               operationId: getAuthor
               parameters:
-                id: '$response.body#/author'
-  '/authors/{id}':
+                id: "$response.body#/author"
+  "/authors/{id}":
     get:
       operationId: getAuthor
       responses:
@@ -51,7 +51,9 @@ paths:
 
 Then, use the `OPENAPI_FILE` environment variable to reference the OpenAPI file:
 
-    UPSTREAM='http://your-api' OPENAPI_FILE='openapi.yaml' ADDR=':3000' KEY_FILE='tls/key.pem' CERT_FILE='tls/cert.pem' ./vulcain
+```bash
+UPSTREAM='http://your-api' OPENAPI_FILE='openapi.yaml' ADDR=':3000' KEY_FILE='tls/key.pem' CERT_FILE='tls/cert.pem' ./vulcain
+```
 
 In response to this request, both `/books/1` and `/authors/1` will be pushed by the Vulcain Gateway Server:
 
@@ -68,11 +70,7 @@ The Vulcain Gateway Server supports the [Extended JSON Pointer syntax](../../spe
 
 ```json
 {
-    "elements": [
-        1,
-        2,
-        3
-    ]
+  "elements": [1, 2, 3]
 }
 ```
 
@@ -80,8 +78,8 @@ The Vulcain Gateway Server supports the [Extended JSON Pointer syntax](../../spe
 
 ```json
 {
-    "title": "1984",
-    "author": 1
+  "title": "1984",
+  "author": 1
 }
 ```
 
@@ -92,7 +90,7 @@ Use the following `links` object to link every item of the collection:
 openapi: 3.0.0
 # ...
 paths:
-  '/books/':
+  "/books/":
     get:
       # ...
       responses:
@@ -101,8 +99,8 @@ paths:
             author:
               operationId: getAuthor
               parameters:
-                id: '$response.body#/elements/*'
-  '/authors/{id}':
+                id: "$response.body#/elements/*"
+  "/authors/{id}":
     get:
       operationId: getAuthor
       responses:
@@ -110,7 +108,7 @@ paths:
       # ...
 ```
 
-With this HTTP request the server will push all resources linked from this collection. 
+With this HTTP request the server will push all resources linked from this collection.
 
 ```http
 GET /books HTTP/2
@@ -119,5 +117,5 @@ Preload: "/elements/*"
 
 ## Known Issues
 
-* Only `operationId` can be used, `operationRef` is not supported yet, see [getkin/kin-openapi#130](https://github.com/getkin/kin-openapi/issues/130)
-* `paths` ending with extensions aren't matched, see [getkin/kin-openapi#129](https://github.com/getkin/kin-openapi/issues/129)
+- Only `operationId` can be used, `operationRef` is not supported yet, see [getkin/kin-openapi#130](https://github.com/getkin/kin-openapi/issues/130)
+- `paths` ending with extensions aren't matched, see [getkin/kin-openapi#129](https://github.com/getkin/kin-openapi/issues/129)

@@ -23,8 +23,8 @@ paths:
               #operationRef: '#/paths/~1oa~1books~1{id}/get'
               operationId: getBook
               parameters:
-                id: '$response.body#/member/*'
-  '/oa/books/{id}':
+                id: "$response.body#/member/*"
+  "/oa/books/{id}":
     parameters:
       - schema:
           type: integer
@@ -34,22 +34,22 @@ paths:
     get:
       operationId: getBook
       responses:
-        '103':
+        "103":
           description: continue
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/book'
+                $ref: "#/components/schemas/book"
           links:
             author:
               # TODO: add support for operationRef (https://github.com/getkin/kin-openapi/issues/130)
               #operationRef: '#/paths/~1oa~1authors~1{id}/get'
               operationId: getAuthor
               parameters:
-                id: '$response.body#/author'
-  '/oa/authors/{id}':
+                id: "$response.body#/author"
+  "/oa/authors/{id}":
     parameters:
       - name: id
         in: path
@@ -59,12 +59,12 @@ paths:
     get:
       operationId: getAuthor
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/author'
+                $ref: "#/components/schemas/author"
 components:
   schemas:
     author:

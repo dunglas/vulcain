@@ -13,39 +13,47 @@ If you include code from another project, please mention it in the Pull Request 
 
 Clone the project:
 
-    $ git clone https://github.com/dunglas/vulcain
-    $ cd vulcain
+```bash
+git clone https://github.com/dunglas/vulcain
+cd vulcain
+```
 
 Install the dependencies:
 
-    $ go get
+```bash
+go get
+```
 
 Run the fixture API:
 
-    # You must run the server too
-    $ cd ../fixtures/
-    $ go run main.go
+```bash
+# You must run the server too
+cd ../fixtures/
+go run main.go
+```
 
 Run Caddy with the Vulcain module as a reverse proxy:
 
-    $ cd caddy/
-    $ go run vulcain/main.go
+```bash
+cd caddy/
+go run vulcain/main.go
+```
 
-Alternatively, to use VSCode and its integrated debugger, use this configuration in `.vscode/launch.json`:
+Alternatively, to use Visual Studio Code and its integrated debugger, use this configuration in `.vscode/launch.json`:
 
 ```json
 {
-   "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Launch the proxy",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "${workspaceFolder}/caddy/vulcain",
-            "args": ["run", "--config", "../fixtures/Caddyfile"]
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch the proxy",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/caddy/vulcain",
+      "args": ["run", "--config", "../fixtures/Caddyfile"]
+    }
+  ]
 }
 ```
 
@@ -56,28 +64,38 @@ An API using an OpenAPI mapping is available on `https://localhost:3000/oa/books
 
 To run the test suite:
 
-    $ go test -v -timeout 30s github.com/dunglas/vulcain/caddy
+```bash
+go test -v -timeout 30s github.com/dunglas/vulcain/caddy
+```
 
 ## Start a Demo API and Contribute to the Legacy Gateway Server
 
 Clone the project:
 
-    $ git clone https://github.com/dunglas/vulcain
-    $ cd vulcain
+```bash
+git clone https://github.com/dunglas/vulcain
+cd vulcain
+```
 
 Install the dependencies:
 
-    $ go get
+```bash
+go get
+```
 
 Run the server:
 
-    $ go run cmd/vulcain/main.go
+```bash
+go run cmd/vulcain/main.go
+```
 
 Run the fixture API:
 
-    # You must run the server too
-    $ cd fixtures/
-    $ go run main.go
+```bash
+# You must run the server too
+cd fixtures/
+go run main.go
+```
 
 Go to `https://localhost:3000` and accept the self-signed certificate.
 Go on `http://localhost:8081` and enjoy!
@@ -86,27 +104,33 @@ An API using an OpenAPI mapping is available on `https://localhost:3000/oa/books
 
 To run the test suite:
 
-    $ go test -v -timeout 30s github.com/dunglas/vulcain/gateway
+```bash
+go test -v -timeout 30s github.com/dunglas/vulcain/gateway
+```
 
-### curl Examples
+### cURL Examples
 
 Preload all relations referenced in the `hydra:member`, then in the author relationship, but only include the title and the author of these relations:
 
-    $ curl https://localhost:3000/books.jsonld \
-        --get \
-        --data 'preload="/hydra:member/*/author"' \
-        --data 'fields="/hydra:member/*/author", "/hydra:member/*/title"' \
-        --verbose \
-        --insecure
+```bash
+curl https://localhost:3000/books.jsonld \
+    --get \
+    --data 'preload="/hydra:member/*/author"' \
+    --data 'fields="/hydra:member/*/author", "/hydra:member/*/title"' \
+    --verbose \
+    --insecure
+```
 
 Using headers:
 
-    $ curl https://localhost:3000/books.jsonld \
-        --get \
-        --header 'Preload: "/hydra:member/*/author"' \
-        --header 'Fields: "/hydra:member/*/author", "/hydra:member/*/title"' \
-        --verbose \
-        --insecure
+```bash
+curl https://localhost:3000/books.jsonld \
+    --get \
+    --header 'Preload: "/hydra:member/*/author"' \
+    --header 'Fields: "/hydra:member/*/author", "/hydra:member/*/title"' \
+    --verbose \
+    --insecure
+```
 
 ## Protocol
 
@@ -115,11 +139,11 @@ It is then converted in the [the "xml2rfc" Version 3 Vocabulary](https://tools.i
 
 To contribute to the protocol itself:
 
-* Make your changes
-* [Download Mmark](https://github.com/mmarkdown/mmark/releases)
-* [Download `xml2rfc` using pip](https://pypi.org/project/xml2rfc/): `pip install xml2rfc`
-* Format the Markdown file: `mmark -markdown -w spec/vulcain.md`
-* Generate the XML file: `mmark spec/vulcain.md > spec/vulcain.xml`
-* Validate the generated XML file and generate the text file: `xml2rfc --text --v3 spec/vulcain.xml`
-* Remove non-ASCII characters from the generated `vulcain.txt` file (example: K**é**vin, Andr**é**, **Ã**elik)
-* If appropriate, be sure to update the reference implementation accordingly
+- Make your changes
+- [Download Mmark](https://github.com/mmarkdown/mmark/releases)
+- [Download `xml2rfc` using pip](https://pypi.org/project/xml2rfc/): `pip install xml2rfc`
+- Format the Markdown file: `mmark -markdown -w spec/vulcain.md`
+- Generate the XML file: `mmark spec/vulcain.md > spec/vulcain.xml`
+- Validate the generated XML file and generate the text file: `xml2rfc --text --v3 spec/vulcain.xml`
+- Remove non-ASCII characters from the generated `vulcain.txt` file (example: K**é**vin, Andr**é**, **Ã**elik)
+- If appropriate, be sure to update the reference implementation accordingly

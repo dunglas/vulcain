@@ -71,7 +71,7 @@ func (n *node) String() string {
 	return s
 }
 
-// partsToTree transforms a splitted JSON pointer to a tree
+// partsToTree transforms a split JSON pointer to a tree
 // The traversal is iterative to avoid unbounded recursion: depth would otherwise equal
 // the number of pointer segments, which an attacker controls through the directive value
 func partsToTree(t _type, parts []string, root *node, params *httpsfv.Params) {

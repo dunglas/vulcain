@@ -11,15 +11,15 @@ Tip: the easiest way to create a hypermedia API is to use [the API Platform fram
 
 First, download the archive corresponding to your operating system and architecture [from the release page](https://github.com/dunglas/vulcain/releases), extract the archive and open a shell in the resulting directory.
 
-Note: Mac OS users must use the `Darwin` binary.
+Note: macOS users must use the `Darwin` binary.
 
 To use HTTP/2 Server Push, the connection must be encrypted with HTTPS.
 To test the hub locally, use [OpenSSL](https://www.openssl.org/) ([Windows binaries](https://wiki.openssl.org/index.php/Binaries)) to generate a self-signed certificate:
 
     mkdir tls
-    openssl req -x509 -newkey rsa:4096 -keyout tls/key.pem -out tls/cert.pem -days 365    
+    openssl req -x509 -newkey rsa:4096 -keyout tls/key.pem -out tls/cert.pem -days 365
 
-Then, on UNIX, run:
+Then, on Unix, run:
 
     UPSTREAM='http://your-api' ADDR=':3000' KEY_FILE='tls/key.pem' CERT_FILE='tls/cert.pem' ./vulcain
 
@@ -27,7 +27,7 @@ On Windows, start [PowerShell](https://docs.microsoft.com/en-us/powershell/), go
 
     $env:UPSTREAM='http://your-api'; $env:ADDR='localhost:3000'; $env:KEY_FILE='key.pem'; $env:CERT_FILE='cert.pem'; .\vulcain.exe
 
-The Windows Defender Firewall will ask you if you want to allow `vulcain.exe` to communicate through it. Allow it for both public and private networks. If you use an antivirus, or another firewall software, be sure to whitelist `vulcain.exe`. 
+The Windows Defender Firewall will ask you if you want to allow `vulcain.exe` to communicate through it. Allow it for both public and private networks. If you use an antivirus, or another firewall software, be sure to whitelist `vulcain.exe`.
 
 The gateway is now available on `https://localhost:3000`.
 
@@ -64,5 +64,5 @@ In production, run:
 
 Be sure to update the value of `ACME_HOSTS` to match your domain name(s), a Let's Encrypt TLS certificate will be automatically generated.
 
-* [Configuration options](config.md)
-* [Mapping a non-hypermedia API using OpenAPI](openapi.md)
+- [Configuration options](config.md)
+- [Mapping a non-hypermedia API using OpenAPI](openapi.md)

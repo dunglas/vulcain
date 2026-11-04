@@ -16,7 +16,7 @@ The Vulcain module for Caddy allows to turn any existing web API in a one suppor
 The easiest way to get started is to use Docker:
 
 ```console
-docker run -e VULCAIN_UPSTREAM='http://your-api' -p 80:80 -p 443:443 dunglas/vulcain 
+docker run -e VULCAIN_UPSTREAM='http://your-api' -p 80:80 -p 443:443 dunglas/vulcain
 ```
 
 The configuration file is located at `/etc/caddy/Caddyfile`.

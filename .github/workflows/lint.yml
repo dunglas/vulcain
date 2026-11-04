@@ -1,0 +1,41 @@
+name: Lint Docs and Non-Go Code
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Lint Code Base
+        uses: super-linter/super-linter/slim@2da136927bd4a73596db63044b504547c62cb854 # v9.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_BIOME_FORMAT: false
+          VALIDATE_BIOME_LINT: false
+          VALIDATE_CHECKOV: false
+          VALIDATE_GITLEAKS: false
+          VALIDATE_JSCPD: false
+          VALIDATE_GO: false
+          VALIDATE_GO_MODULES: false
+          VALIDATE_GO_RELEASER: false
+          VALIDATE_PHP_PHPCS: false
+          # Test scripts depend on Composer packages the lint job doesn't install.
+          VALIDATE_PHP_PHPSTAN: false
+          VALIDATE_PHP_PSALM: false
+          VALIDATE_TRIVY: false
